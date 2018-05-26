@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"sort"
 	"strings"
 )
 
@@ -12,21 +11,31 @@ import (
 
 // Route is the route definition.
 type Route struct {
-	Fn        HandlerFunc
-	Modifiers Modifiers
-	Path      string
-	Method    string
+	Fn     HandlerFunc
+	Path   string
+	Method string
 }
 
-// ContextKey is the type of the key for dynamic context entries.
-type ContextKey interface{}
+// dynamicContextKey is the type of the key for dynamic context entries (Unknown string as key).
+type dynamicContextKey interface{}
+
+// contextKey is the type of the key for predefined context keys (e.g. request-id).
+// const RequestIdCtxKey = &contextKey{"request-id"}
+type contextKey struct {
+	name string
+}
+
+func (ck *contextKey) String() string {
+	return "fabyscore-go_" + ck.name
+}
 
 //----------------------------------------------------------------------------------------------------------------------
 
 // router is a http request router.
 // Create a new instance by using newRouter().
 type router struct {
-	trees methodTrees
+	trees     methodTrees
+	hasRoutes bool
 }
 
 // newRouter returns a router instance.
@@ -38,10 +47,9 @@ func newRouter() *router {
 	return r
 }
 
-// addRoute adds a new request handler / modifiers for a given method/path combination.
-func (r *router) addRoute(method string, path string, fn HandlerFunc, modifiers Modifiers) {
+// addRoute adds a new request handler for a given method/path combination.
+func (r *router) addRoute(method string, path string, fn HandlerFunc) {
 	method = strings.ToUpper(method)
-	sort.Sort(modifiers)
 
 	root := r.trees.getRoot(method)
 	if root == nil {
@@ -55,7 +63,9 @@ func (r *router) addRoute(method string, path string, fn HandlerFunc, modifiers 
 		r.trees = append(r.trees, t)
 	}
 
-	root.add(path, fn, modifiers)
+	root.add(path, fn)
+
+	r.hasRoutes = true
 }
 
 // resolve returns the tree node and the request containing the context(if the route has parameters) for a given request.
@@ -89,15 +99,13 @@ type node struct {
 	children  []*node
 	isDynamic bool
 	fn        HandlerFunc
-	modifiers Modifiers
 }
 
 // add adds a new node with a given path.
-func (n *node) add(path string, fn HandlerFunc, modifiers Modifiers) {
+func (n *node) add(path string, fn HandlerFunc) {
 	if path == "/" {
 		n.path = "/"
 		n.fn = fn
-		n.modifiers = modifiers
 		return
 	}
 
@@ -123,7 +131,6 @@ func (n *node) add(path string, fn HandlerFunc, modifiers Modifiers) {
 	}
 
 	resolvedNode.fn = fn
-	resolvedNode.modifiers = modifiers
 }
 
 // resolve returns the node and the request with context for a given request.
@@ -148,7 +155,7 @@ func (n *node) resolve(req *http.Request) (*node, *http.Request) {
 				ctx = req.Context()
 			}
 
-			ctx = context.WithValue(ctx, ContextKey(n.path[1:]), part)
+			ctx = context.WithValue(ctx, dynamicContextKey(n.path[1:]), part)
 		}
 	}
 

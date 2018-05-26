@@ -11,15 +11,41 @@ import (
 // HandlerFunc is the fabyscore http.HandlerFunc type.
 type HandlerFunc func(w http.ResponseWriter, r *http.Request) (http.ResponseWriter, *http.Request)
 
+// MiddlewareFunc @todo
+type MiddlewareFunc func(http.Handler) http.Handler
+
+// @todo, comment?
+type middleware struct {
+	fn   MiddlewareFunc
+	sort int
+}
+
+type middlewares []middleware
+
+// See sort.Interface Len().
+func (slice middlewares) Len() int {
+	return len(slice)
+}
+
+// See sort.Interface Less().
+func (slice middlewares) Less(i, j int) bool {
+	return slice[i].sort < slice[j].sort
+}
+
+// See sort.Interface Swap().
+func (slice middlewares) Swap(i, j int) {
+	slice[i], slice[j] = slice[j], slice[i]
+}
+
 //----------------------------------------------------------------------------------------------------------------------
 
-// App is the main fabyscore instance, it contains the modifiers and the router.
+// App is the main fabyscore instance.
 // Create a new instance by using NewApp().
 type App struct {
 	router          *router
-	modifiers       Modifiers
-	beforeModifiers Modifiers
 	notFoundHandler HandlerFunc
+
+	globalMiddlewares middlewares
 }
 
 // NewApp returns an App instance.
@@ -27,8 +53,7 @@ func NewApp() *App {
 	app := &App{}
 
 	app.router = newRouter()
-	app.modifiers = Modifiers{}
-	app.beforeModifiers = Modifiers{}
+	app.globalMiddlewares = middlewares{}
 
 	return app
 }
@@ -36,21 +61,11 @@ func NewApp() *App {
 // Run starts a http.Server for the application with the given addr.
 // This method blocks the calling goroutine.
 func (a *App) Run(addr string) {
-	sort.Sort(a.modifiers)
-	sort.Sort(a.beforeModifiers)
-
 	http.ListenAndServe(addr, a)
 }
 
 // See http.Handler interface's ServeHTTP.
 func (a *App) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	for _, mod := range a.beforeModifiers {
-		w, req = mod.fn(w, req)
-		if req == nil {
-			return
-		}
-	}
-
 	node, req := a.router.resolve(req)
 	if node == nil || node.fn == nil {
 		if a.notFoundHandler != nil {
@@ -62,110 +77,104 @@ func (a *App) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	for _, mod := range a.modifiers {
-		w, req = mod.fn(w, req)
-		if req == nil {
-			return
-		}
-	}
-
-	for _, mod := range node.modifiers {
-		w, req = mod.fn(w, req)
-		if req == nil {
-			return
-		}
-	}
-
 	node.fn(w, req)
 }
 
-// AddModifier adds a modifier which is executed after the route is resolved.
-func (a *App) AddModifier(sort int, fn HandlerFunc) {
-	a.modifiers = append(a.modifiers, Modifier{
-		sort: sort,
-		fn:   fn,
-	})
+// GET adds a new request handler for a GET request with the given path.
+func (a *App) GET(path string, fn HandlerFunc) {
+	a.addRoute("GET", path, fn)
 }
 
-// AddBeforeModifier adds a modifier which is executed before the route is resolved.
-func (a *App) AddBeforeModifier(sort int, fn HandlerFunc) {
-	a.beforeModifiers = append(a.beforeModifiers, Modifier{
-		sort: sort,
-		fn:   fn,
-	})
+// POST adds a new request handler for a POST request with the given path.
+func (a *App) POST(route string, fn HandlerFunc) {
+	a.addRoute("POST", route, fn)
 }
 
-// GET adds a new request handler (HandlerFunc and modifiers) for a GET request with the given path.
-func (a *App) GET(path string, fn HandlerFunc, modifiers ...Modifier) {
-	a.router.addRoute("GET", path, fn, modifiers)
+// PUT adds a new request handler for a PUT request with the given path.
+func (a *App) PUT(route string, fn HandlerFunc) {
+	a.addRoute("PUT", route, fn)
 }
 
-// POST adds a new request handler (HandlerFunc and modifiers) for a POST request with the given path.
-func (a *App) POST(route string, fn HandlerFunc, modifiers ...Modifier) {
-	a.router.addRoute("POST", route, fn, modifiers)
+// DELETE adds a new request handler for a DELETE request with the given path.
+func (a *App) DELETE(route string, fn HandlerFunc) {
+	a.addRoute("DELETE", route, fn)
 }
 
-// PUT adds a new request handler (HandlerFunc and modifiers) for a PUT request with the given path.
-func (a *App) PUT(route string, fn HandlerFunc, modifiers ...Modifier) {
-	a.router.addRoute("PUT", route, fn, modifiers)
+// PATCH adds a new request handler for a PATCH request with the given path.
+func (a *App) PATCH(route string, fn HandlerFunc) {
+	a.addRoute("PATCH", route, fn)
 }
 
-// DELETE adds a new request handler (HandlerFunc and modifiers) for a DELETE request with the given path.
-func (a *App) DELETE(route string, fn HandlerFunc, modifiers ...Modifier) {
-	a.router.addRoute("DELETE", route, fn, modifiers)
+// HEAD adds a new request handler for a HEAD request with the given path.
+func (a *App) HEAD(route string, fn HandlerFunc) {
+	a.addRoute("HEAD", route, fn)
 }
 
-// PATCH adds a new request handler (HandlerFunc and modifiers) for a PATCH request with the given path.
-func (a *App) PATCH(route string, fn HandlerFunc, modifiers ...Modifier) {
-	a.router.addRoute("PATCH", route, fn, modifiers)
+// OPTIONS adds a new request handler for a OPTIONS request with the given path.
+func (a *App) OPTIONS(route string, fn HandlerFunc) {
+	a.addRoute("OPTIONS", route, fn)
 }
 
-// HEAD adds a new request handler (HandlerFunc and modifiers) for a HEAD request with the given path.
-func (a *App) HEAD(route string, fn HandlerFunc, modifiers ...Modifier) {
-	a.router.addRoute("HEAD", route, fn, modifiers)
+// CONNECT adds a new request handler for a CONNECT request with the given path.
+func (a *App) CONNECT(route string, fn HandlerFunc) {
+	a.addRoute("CONNECT", route, fn)
 }
 
-// OPTIONS adds a new request handler (HandlerFunc and modifiers) for a OPTIONS request with the given path.
-func (a *App) OPTIONS(route string, fn HandlerFunc, modifiers ...Modifier) {
-	a.router.addRoute("OPTIONS", route, fn, modifiers)
-}
-
-// CONNECT adds a new request handler (HandlerFunc and modifiers) for a CONNECT request with the given path.
-func (a *App) CONNECT(route string, fn HandlerFunc, modifiers ...Modifier) {
-	a.router.addRoute("CONNECT", route, fn, modifiers)
-}
-
-// TRACE adds a new request handler (HandlerFunc and modifiers) for a TRACE request with the given path.
-func (a *App) TRACE(route string, fn HandlerFunc, modifiers ...Modifier) {
-	a.router.addRoute("TRACE", route, fn, modifiers)
+// TRACE adds a new request handler for a TRACE request with the given path.
+func (a *App) TRACE(route string, fn HandlerFunc) {
+	a.addRoute("TRACE", route, fn)
 }
 
 // Any adds a route for all HTTP methods.
-func (a *App) Any(route string, fn HandlerFunc, modifiers ...Modifier) {
-	a.GET(route, fn, modifiers...)
-	a.POST(route, fn, modifiers...)
-	a.PUT(route, fn, modifiers...)
-	a.DELETE(route, fn, modifiers...)
-	a.PATCH(route, fn, modifiers...)
-	a.HEAD(route, fn, modifiers...)
-	a.OPTIONS(route, fn, modifiers...)
-	a.CONNECT(route, fn, modifiers...)
-	a.TRACE(route, fn, modifiers...)
+func (a *App) Any(route string, fn HandlerFunc) {
+	a.GET(route, fn)
+	a.POST(route, fn)
+	a.PUT(route, fn)
+	a.DELETE(route, fn)
+	a.PATCH(route, fn)
+	a.HEAD(route, fn)
+	a.OPTIONS(route, fn)
+	a.CONNECT(route, fn)
+	a.TRACE(route, fn)
 }
 
-// Group adds multiple routes with common modifiers and common path prefix.
-func (a *App) Group(path string, modifiers Modifiers, routes ...*Route) {
+// Group adds multiple routes with common path prefix.
+func (a *App) Group(path string, routes ...*Route) {
 	for _, route := range routes {
 		route.Path = "/" + strings.Trim(path, "/") + "/" + strings.TrimLeft(route.Path, "/")
-		route.Modifiers = append(route.Modifiers, modifiers...)
 
-		a.router.addRoute(route.Method, route.Path, route.Fn, route.Modifiers)
+		a.router.addRoute(route.Method, route.Path, route.Fn)
 	}
 }
 
 // SetNotFoundHandler sets the HandlerFunc executed if no handler is found for the request.
 func (a *App) SetNotFoundHandler(fn HandlerFunc) {
 	a.notFoundHandler = fn
+}
+
+// Use @todo
+// Defaults to a sort of 0. Use `UseWithSort` to set an sort for a middleware.
+func (a *App) Use(fn MiddlewareFunc) {
+	a.UseWithSort(fn, 0)
+}
+
+// UseWithSort @todo
+func (a *App) UseWithSort(fn MiddlewareFunc, sorting int) {
+	if a.router.hasRoutes {
+		panic("App middlewares must be defined before the routes")
+	}
+
+	a.globalMiddlewares = append(a.globalMiddlewares, middleware{
+		fn:   fn,
+		sort: sorting,
+	})
+
+	sort.Sort(a.globalMiddlewares)
+}
+
+// UseWithSort @todo
+func (a *App) addRoute(method, path string, fn HandlerFunc) {
+	a.router.addRoute(method, path, fn)
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -184,24 +193,4 @@ func NewModifier(sort int, fn HandlerFunc) Modifier {
 		sort: sort,
 		fn:   fn,
 	}
-}
-
-//----------------------------------------------------------------------------------------------------------------------
-
-// Modifiers is a slice of Modifier implementing sort.Interface.
-type Modifiers []Modifier
-
-// See sort.Interface Len().
-func (slice Modifiers) Len() int {
-	return len(slice)
-}
-
-// See sort.Interface Less().
-func (slice Modifiers) Less(i, j int) bool {
-	return slice[i].sort < slice[j].sort
-}
-
-// See sort.Interface Swap().
-func (slice Modifiers) Swap(i, j int) {
-	slice[i], slice[j] = slice[j], slice[i]
 }
