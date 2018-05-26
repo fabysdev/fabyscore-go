@@ -9,12 +9,11 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func simpleHandler(w http.ResponseWriter, r *http.Request) (http.ResponseWriter, *http.Request) {
+func simpleHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprint(w, "simple")
-	return w, r
 }
 
-func dynamicHandler(w http.ResponseWriter, r *http.Request) (http.ResponseWriter, *http.Request) {
+func dynamicHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	name := ctx.Value("name")
@@ -30,12 +29,10 @@ func dynamicHandler(w http.ResponseWriter, r *http.Request) (http.ResponseWriter
 	}
 
 	fmt.Fprint(w, "dynamic "+nameStr+" "+paramStr)
-	return w, r
 }
 
-func routerMod(w http.ResponseWriter, r *http.Request) (http.ResponseWriter, *http.Request) {
+func routerMod(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprint(w, "mod")
-	return w, r
 }
 
 func TestAddRouteSimple(t *testing.T) {

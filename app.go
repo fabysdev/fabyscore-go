@@ -8,9 +8,6 @@ import (
 
 //----------------------------------------------------------------------------------------------------------------------
 
-// HandlerFunc is the fabyscore http.HandlerFunc type.
-type HandlerFunc func(w http.ResponseWriter, r *http.Request) (http.ResponseWriter, *http.Request)
-
 // MiddlewareFunc @todo
 type MiddlewareFunc func(http.Handler) http.Handler
 
@@ -43,7 +40,7 @@ func (slice middlewares) Swap(i, j int) {
 // Create a new instance by using NewApp().
 type App struct {
 	router          *router
-	notFoundHandler HandlerFunc
+	notFoundHandler http.HandlerFunc
 
 	globalMiddlewares middlewares
 }
@@ -81,52 +78,52 @@ func (a *App) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 }
 
 // GET adds a new request handler for a GET request with the given path.
-func (a *App) GET(path string, fn HandlerFunc) {
+func (a *App) GET(path string, fn http.HandlerFunc) {
 	a.addRoute("GET", path, fn)
 }
 
 // POST adds a new request handler for a POST request with the given path.
-func (a *App) POST(route string, fn HandlerFunc) {
+func (a *App) POST(route string, fn http.HandlerFunc) {
 	a.addRoute("POST", route, fn)
 }
 
 // PUT adds a new request handler for a PUT request with the given path.
-func (a *App) PUT(route string, fn HandlerFunc) {
+func (a *App) PUT(route string, fn http.HandlerFunc) {
 	a.addRoute("PUT", route, fn)
 }
 
 // DELETE adds a new request handler for a DELETE request with the given path.
-func (a *App) DELETE(route string, fn HandlerFunc) {
+func (a *App) DELETE(route string, fn http.HandlerFunc) {
 	a.addRoute("DELETE", route, fn)
 }
 
 // PATCH adds a new request handler for a PATCH request with the given path.
-func (a *App) PATCH(route string, fn HandlerFunc) {
+func (a *App) PATCH(route string, fn http.HandlerFunc) {
 	a.addRoute("PATCH", route, fn)
 }
 
 // HEAD adds a new request handler for a HEAD request with the given path.
-func (a *App) HEAD(route string, fn HandlerFunc) {
+func (a *App) HEAD(route string, fn http.HandlerFunc) {
 	a.addRoute("HEAD", route, fn)
 }
 
 // OPTIONS adds a new request handler for a OPTIONS request with the given path.
-func (a *App) OPTIONS(route string, fn HandlerFunc) {
+func (a *App) OPTIONS(route string, fn http.HandlerFunc) {
 	a.addRoute("OPTIONS", route, fn)
 }
 
 // CONNECT adds a new request handler for a CONNECT request with the given path.
-func (a *App) CONNECT(route string, fn HandlerFunc) {
+func (a *App) CONNECT(route string, fn http.HandlerFunc) {
 	a.addRoute("CONNECT", route, fn)
 }
 
 // TRACE adds a new request handler for a TRACE request with the given path.
-func (a *App) TRACE(route string, fn HandlerFunc) {
+func (a *App) TRACE(route string, fn http.HandlerFunc) {
 	a.addRoute("TRACE", route, fn)
 }
 
 // Any adds a route for all HTTP methods.
-func (a *App) Any(route string, fn HandlerFunc) {
+func (a *App) Any(route string, fn http.HandlerFunc) {
 	a.GET(route, fn)
 	a.POST(route, fn)
 	a.PUT(route, fn)
@@ -147,8 +144,8 @@ func (a *App) Group(path string, routes ...*Route) {
 	}
 }
 
-// SetNotFoundHandler sets the HandlerFunc executed if no handler is found for the request.
-func (a *App) SetNotFoundHandler(fn HandlerFunc) {
+// SetNotFoundHandler sets the http.HandlerFunc executed if no handler is found for the request.
+func (a *App) SetNotFoundHandler(fn http.HandlerFunc) {
 	a.notFoundHandler = fn
 }
 
@@ -173,7 +170,7 @@ func (a *App) UseWithSort(fn MiddlewareFunc, sorting int) {
 }
 
 // UseWithSort @todo
-func (a *App) addRoute(method, path string, fn HandlerFunc) {
+func (a *App) addRoute(method, path string, fn http.HandlerFunc) {
 	a.router.addRoute(method, path, fn)
 }
 
@@ -184,11 +181,11 @@ func (a *App) addRoute(method, path string, fn HandlerFunc) {
 // Create a new instance by using NewModifier().
 type Modifier struct {
 	sort int
-	fn   HandlerFunc
+	fn   http.HandlerFunc
 }
 
 // NewModifier returns a new Modifier instance.
-func NewModifier(sort int, fn HandlerFunc) Modifier {
+func NewModifier(sort int, fn http.HandlerFunc) Modifier {
 	return Modifier{
 		sort: sort,
 		fn:   fn,

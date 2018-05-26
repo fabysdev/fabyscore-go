@@ -226,37 +226,19 @@ func TestApp(t *testing.T) {
 }
 
 //----------------------------------------------------------------------------------------------------------------------
-func routeHandler(w http.ResponseWriter, r *http.Request) (http.ResponseWriter, *http.Request) {
+func routeHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprint(w, "r")
-	return w, r
 }
 
-func appTestNotFoundHandler(w http.ResponseWriter, r *http.Request) (http.ResponseWriter, *http.Request) {
+func appTestNotFoundHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(404)
 	w.Write([]byte("404"))
-	return w, r
 }
 
-func fabyscoreHandler(w http.ResponseWriter, r *http.Request) (http.ResponseWriter, *http.Request) {
+func fabyscoreHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprint(w, r.Context().Value("id"))
 	fmt.Fprint(w, r.Context().Value("mod"))
 	fmt.Fprint(w, "contr")
-	return w, r
-}
-
-func mb(w http.ResponseWriter, req *http.Request) (http.ResponseWriter, *http.Request) {
-	fmt.Fprint(w, "b")
-	return w, req
-}
-
-func ma(w http.ResponseWriter, req *http.Request) (http.ResponseWriter, *http.Request) {
-	fmt.Fprint(w, "a")
-	return w, req
-}
-
-func mc(w http.ResponseWriter, req *http.Request) (http.ResponseWriter, *http.Request) {
-	fmt.Fprint(w, "c")
-	return w, req
 }
 
 //----------------------------------------------------------------------------------------------------------------------

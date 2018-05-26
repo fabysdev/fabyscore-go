@@ -11,7 +11,7 @@ import (
 
 // Route is the route definition.
 type Route struct {
-	Fn     HandlerFunc
+	Fn     http.HandlerFunc
 	Path   string
 	Method string
 }
@@ -48,7 +48,7 @@ func newRouter() *router {
 }
 
 // addRoute adds a new request handler for a given method/path combination.
-func (r *router) addRoute(method string, path string, fn HandlerFunc) {
+func (r *router) addRoute(method string, path string, fn http.HandlerFunc) {
 	method = strings.ToUpper(method)
 
 	root := r.trees.getRoot(method)
@@ -98,11 +98,11 @@ type node struct {
 	path      string
 	children  []*node
 	isDynamic bool
-	fn        HandlerFunc
+	fn        http.HandlerFunc
 }
 
 // add adds a new node with a given path.
-func (n *node) add(path string, fn HandlerFunc) {
+func (n *node) add(path string, fn http.HandlerFunc) {
 	if path == "/" {
 		n.path = "/"
 		n.fn = fn
