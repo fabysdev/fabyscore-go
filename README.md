@@ -22,16 +22,16 @@ import "net/http"
 import "fmt"
   
 func main() {
-    app := fabyscore.NewApp();
-        
-    app.GET("/", fabyscoreHandler)
-    
-    app.Run(":8080")
+  app := fabyscore.NewApp();
+      
+  app.GET("/", fabyscoreHandler)
+  
+  app.Run(":8080")
 }
   
 func fabyscoreHandler(w http.ResponseWriter, r *http.Request) (http.ResponseWriter, *http.Request) {
-    fmt.Fprint(w, "Hello!")
-    return w, r
+  fmt.Fprint(w, "Hello!")
+  return w, r
 }
 
 ```
@@ -58,18 +58,18 @@ app.Any("/", fabyscoreHandler)
   
 // Group
 app.Group("/test", Modifiers{}, 
-    &Route{Method: "GET", Path: "/", Fn: fabyscoreHandler},
-    &Route{Method: "GET", Path: "/route", Fn: fabyscoreHandler},
-    
-    &Route{Method: "POST", Path: "/route", Fn: fabyscoreHandler},
+  &Route{Method: "GET", Path: "/", Fn: fabyscoreHandler},
+  &Route{Method: "GET", Path: "/route", Fn: fabyscoreHandler},
+  
+  &Route{Method: "POST", Path: "/route", Fn: fabyscoreHandler},
 )
 ```
 
 ####Not Found Handler
 ```go
 func fabyscoreNotFoundHandler(w http.ResponseWriter, req *http.Request) (http.ResponseWriter, *http.Request) {
-    fmt.Fprint(w, "404 - Not Found")
-    return w, req
+  fmt.Fprint(w, "404 - Not Found")
+  return w, req
 }
 
 app.SetNotFoundHandler(fabyscoreNotFoundHandler)
@@ -83,8 +83,8 @@ No further modifier (or the route handler) will be invoked if a modifier does no
 
 ```go
 func fabyscoreModifier(w http.ResponseWriter, req *http.Request) (http.ResponseWriter, *http.Request) {
-    req.Header.Add("X-Test", "Test")
-    return w, req
+  req.Header.Add("X-Test", "Test")
+  return w, req
 }
 ```
 
@@ -112,7 +112,7 @@ Route modifiers are defined on the route level.
 app.GET("/", fabyscoreHandler, fabyscore.NewModifier(0, fabyscoreModifier), fabyscore.NewModifier(1, fabyscoreModifier))
   
 app.Group("/test", fabyscore.Modifiers{fabyscore.NewModifier(0, fabyscoreModifier)},
-    &fabyscore.Route{Method: "GET", Path: "/", Fn: fabyscoreHandler, Modifiers: fabyscore.Modifiers{fabyscore.NewModifier(0, fabyscoreModifier)}},
+  &fabyscore.Route{Method: "GET", Path: "/", Fn: fabyscoreHandler, Modifiers: fabyscore.Modifiers{fabyscore.NewModifier(0, fabyscoreModifier)}},
 )
 ```
 

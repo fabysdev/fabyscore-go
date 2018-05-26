@@ -1,4 +1,4 @@
-Godeps/*
-!Godeps/Godeps.json
 vendor/
+test/
 coverage.out
+develop.ps1
