@@ -17,6 +17,7 @@ type middleware struct {
 	sort int
 }
 
+// @todo, comment
 type middlewares []middleware
 
 // See sort.Interface Len().
@@ -80,61 +81,61 @@ func (a *App) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 }
 
 // GET adds a new request handler for a GET request with the given path.
-func (a *App) GET(path string, fn http.HandlerFunc) {
-	a.addRoute("GET", path, fn)
+func (a *App) GET(path string, fn http.HandlerFunc, middlewares ...MiddlewareFunc) {
+	a.addRoute("GET", path, fn, middlewares)
 }
 
 // POST adds a new request handler for a POST request with the given path.
-func (a *App) POST(route string, fn http.HandlerFunc) {
-	a.addRoute("POST", route, fn)
+func (a *App) POST(route string, fn http.HandlerFunc, middlewares ...MiddlewareFunc) {
+	a.addRoute("POST", route, fn, middlewares)
 }
 
 // PUT adds a new request handler for a PUT request with the given path.
-func (a *App) PUT(route string, fn http.HandlerFunc) {
-	a.addRoute("PUT", route, fn)
+func (a *App) PUT(route string, fn http.HandlerFunc, middlewares ...MiddlewareFunc) {
+	a.addRoute("PUT", route, fn, middlewares)
 }
 
 // DELETE adds a new request handler for a DELETE request with the given path.
-func (a *App) DELETE(route string, fn http.HandlerFunc) {
-	a.addRoute("DELETE", route, fn)
+func (a *App) DELETE(route string, fn http.HandlerFunc, middlewares ...MiddlewareFunc) {
+	a.addRoute("DELETE", route, fn, middlewares)
 }
 
 // PATCH adds a new request handler for a PATCH request with the given path.
-func (a *App) PATCH(route string, fn http.HandlerFunc) {
-	a.addRoute("PATCH", route, fn)
+func (a *App) PATCH(route string, fn http.HandlerFunc, middlewares ...MiddlewareFunc) {
+	a.addRoute("PATCH", route, fn, middlewares)
 }
 
 // HEAD adds a new request handler for a HEAD request with the given path.
-func (a *App) HEAD(route string, fn http.HandlerFunc) {
-	a.addRoute("HEAD", route, fn)
+func (a *App) HEAD(route string, fn http.HandlerFunc, middlewares ...MiddlewareFunc) {
+	a.addRoute("HEAD", route, fn, middlewares)
 }
 
 // OPTIONS adds a new request handler for a OPTIONS request with the given path.
-func (a *App) OPTIONS(route string, fn http.HandlerFunc) {
-	a.addRoute("OPTIONS", route, fn)
+func (a *App) OPTIONS(route string, fn http.HandlerFunc, middlewares ...MiddlewareFunc) {
+	a.addRoute("OPTIONS", route, fn, middlewares)
 }
 
 // CONNECT adds a new request handler for a CONNECT request with the given path.
-func (a *App) CONNECT(route string, fn http.HandlerFunc) {
-	a.addRoute("CONNECT", route, fn)
+func (a *App) CONNECT(route string, fn http.HandlerFunc, middlewares ...MiddlewareFunc) {
+	a.addRoute("CONNECT", route, fn, middlewares)
 }
 
 // TRACE adds a new request handler for a TRACE request with the given path.
-func (a *App) TRACE(route string, fn http.HandlerFunc) {
-	a.addRoute("TRACE", route, fn)
+func (a *App) TRACE(route string, fn http.HandlerFunc, middlewares ...MiddlewareFunc) {
+	a.addRoute("TRACE", route, fn, middlewares)
 }
 
 // Any adds a route for all HTTP methods.
-func (a *App) Any(route string, fn http.HandlerFunc) {
-	a.GET(route, fn)
-	a.POST(route, fn)
-	a.PUT(route, fn)
-	a.DELETE(route, fn)
-	a.PATCH(route, fn)
-	a.HEAD(route, fn)
-	a.OPTIONS(route, fn)
-	a.CONNECT(route, fn)
-	a.TRACE(route, fn)
+func (a *App) Any(route string, fn http.HandlerFunc, middlewares ...MiddlewareFunc) {
+	a.GET(route, fn, middlewares...)
+	a.POST(route, fn, middlewares...)
+	a.PUT(route, fn, middlewares...)
+	a.DELETE(route, fn, middlewares...)
+	a.PATCH(route, fn, middlewares...)
+	a.HEAD(route, fn, middlewares...)
+	a.OPTIONS(route, fn, middlewares...)
+	a.CONNECT(route, fn, middlewares...)
+	a.TRACE(route, fn, middlewares...)
 }
 
 // Group adds multiple routes with common path prefix.
@@ -172,9 +173,17 @@ func (a *App) UseWithSort(fn MiddlewareFunc, sorting int) {
 }
 
 // UseWithSort @todo
-func (a *App) addRoute(method, path string, fn http.Handler) {
-	// create handler function with all middlewares
-	middlewaresLen := len(a.middlewares)
+func (a *App) addRoute(method, path string, fn http.Handler, middlewares []MiddlewareFunc) {
+	// create handler with route middlewares
+	middlewaresLen := len(middlewares)
+	if middlewaresLen > 0 {
+		for i := middlewaresLen - 1; i >= 0; i-- {
+			fn = middlewares[i](fn)
+		}
+	}
+
+	// create handler function with app middlewares
+	middlewaresLen = len(a.middlewares)
 	if middlewaresLen > 0 {
 		for i := middlewaresLen - 1; i >= 0; i-- {
 			fn = a.middlewares[i].fn(fn)
