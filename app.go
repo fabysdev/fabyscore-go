@@ -139,12 +139,19 @@ func (a *App) Any(route string, fn http.HandlerFunc, middlewares ...MiddlewareFu
 }
 
 // Group adds multiple routes with common path prefix.
-func (a *App) Group(path string, routes ...*Route) {
-	for _, route := range routes {
-		route.Path = "/" + strings.Trim(path, "/") + "/" + strings.TrimLeft(route.Path, "/")
-
-		a.router.addRoute(route.Method, route.Path, route.Fn)
+func (a *App) Group(path string, fn GroupSetupFunc) {
+	basePath := strings.Trim(path, "/")
+	if basePath != "" {
+		basePath = "/" + basePath
 	}
+
+	group := &Group{
+		basePath:    basePath,
+		app:         a,
+		middlewares: middlewares{},
+	}
+
+	fn(group)
 }
 
 // SetNotFoundHandler sets the http.HandlerFunc executed if no handler is found for the request.
@@ -172,7 +179,7 @@ func (a *App) UseWithSort(fn MiddlewareFunc, sorting int) {
 	sort.Sort(a.middlewares)
 }
 
-// UseWithSort @todo
+// addRoute @todo
 func (a *App) addRoute(method, path string, fn http.Handler, middlewares []MiddlewareFunc) {
 	// create handler with route middlewares
 	middlewaresLen := len(middlewares)
@@ -192,22 +199,4 @@ func (a *App) addRoute(method, path string, fn http.Handler, middlewares []Middl
 
 	// add route to router
 	a.router.addRoute(method, path, fn)
-}
-
-//----------------------------------------------------------------------------------------------------------------------
-
-// Modifier can change the request and the response before the route handler is called.
-// The execution path is linear: Modifier1 -> Modifier2 -> RouteHandler.
-// Create a new instance by using NewModifier().
-type Modifier struct {
-	sort int
-	fn   http.HandlerFunc
-}
-
-// NewModifier returns a new Modifier instance.
-func NewModifier(sort int, fn http.HandlerFunc) Modifier {
-	return Modifier{
-		sort: sort,
-		fn:   fn,
-	}
 }
