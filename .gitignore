@@ -1,4 +1,5 @@
 vendor/
 test/
 coverage.out
+coverage.html
 develop.ps1
