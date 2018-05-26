@@ -37,20 +37,20 @@ func routerMod(w http.ResponseWriter, r *http.Request) {
 
 func TestAddRouteSimple(t *testing.T) {
 	router := newRouter()
-	router.addRoute("GET", "/testroute", simpleHandler)
+	router.addRoute("GET", "/testroute", http.HandlerFunc(simpleHandler))
 
 	assert.Equal(t, "GET:\n/\n  testroute\n\n\n", router.dumpTree())
 
-	router.addRoute("POST", "/route", simpleHandler)
-	router.addRoute("GET", "/route", simpleHandler)
+	router.addRoute("POST", "/route", http.HandlerFunc(simpleHandler))
+	router.addRoute("GET", "/route", http.HandlerFunc(simpleHandler))
 
 	assert.Equal(t, "GET:\n/\n  testroute\n  route\n\n\nPOST:\n/\n  route\n\n\n", router.dumpTree())
 }
 
 func TestAddRouteSimpleRoot(t *testing.T) {
 	router := newRouter()
-	router.addRoute("GET", "/", simpleHandler)
-	router.addRoute("GET", "/testroute", simpleHandler)
+	router.addRoute("GET", "/", http.HandlerFunc(simpleHandler))
+	router.addRoute("GET", "/testroute", http.HandlerFunc(simpleHandler))
 
 	assert.Equal(t, "GET:\n/\n  testroute\n\n\n", router.dumpTree())
 }
@@ -58,24 +58,24 @@ func TestAddRouteSimpleRoot(t *testing.T) {
 func TestAddRouteSimpleTree(t *testing.T) {
 	router := newRouter()
 
-	router.addRoute("GET", "/test/route/simple", simpleHandler)
+	router.addRoute("GET", "/test/route/simple", http.HandlerFunc(simpleHandler))
 	assert.Equal(t, "GET:\n/\n  test\n    route\n      simple\n\n\n", router.dumpTree())
 
-	router.addRoute("GET", "/test/route/name", simpleHandler)
+	router.addRoute("GET", "/test/route/name", http.HandlerFunc(simpleHandler))
 	assert.Equal(t, "GET:\n/\n  test\n    route\n      simple\n      name\n\n\n", router.dumpTree())
 
-	router.addRoute("GET", "/route/core", simpleHandler)
+	router.addRoute("GET", "/route/core", http.HandlerFunc(simpleHandler))
 	assert.Equal(t, "GET:\n/\n  test\n    route\n      simple\n      name\n  route\n    core\n\n\n", router.dumpTree())
 }
 
 func TestAddRouteDynamic(t *testing.T) {
 	router := newRouter()
 
-	router.addRoute("GET", "/route/:name", dynamicHandler)
+	router.addRoute("GET", "/route/:name", http.HandlerFunc(dynamicHandler))
 	assert.Equal(t, "GET:\n/\n  route\n    :name\n\n\n", router.dumpTree())
 	assert.Equal(t, 1, countDynamicNodes(router.trees.getRoot("GET")))
 
-	router.addRoute("GET", "/route/:name/test/:param/name/", dynamicHandler)
+	router.addRoute("GET", "/route/:name/test/:param/name/", http.HandlerFunc(dynamicHandler))
 	assert.Equal(t, "GET:\n/\n  route\n    :name\n      test\n        :param\n          name\n            \n\n\n", router.dumpTree())
 	assert.Equal(t, 2, countDynamicNodes(router.trees.getRoot("GET")))
 }
@@ -91,7 +91,7 @@ func TestResolveTreeNotFound(t *testing.T) {
 
 func TestResolveNotFound(t *testing.T) {
 	router := newRouter()
-	router.addRoute("GET", "/testroute", simpleHandler)
+	router.addRoute("GET", "/testroute", http.HandlerFunc(simpleHandler))
 
 	req, _ := http.NewRequest("GET", "/notfound", nil)
 
@@ -107,7 +107,7 @@ func TestResolveNotFound(t *testing.T) {
 
 func TestResolveMethodTreeNotFound(t *testing.T) {
 	router := newRouter()
-	router.addRoute("GET", "/testroute", simpleHandler)
+	router.addRoute("GET", "/testroute", http.HandlerFunc(simpleHandler))
 
 	req, _ := http.NewRequest("POST", "/testroute", nil)
 	node, req := router.resolve(req)
@@ -117,14 +117,14 @@ func TestResolveMethodTreeNotFound(t *testing.T) {
 
 func TestResolve(t *testing.T) {
 	router := newRouter()
-	router.addRoute("GET", "/", simpleHandler)
-	router.addRoute("GET", "/testroute", simpleHandler)
-	router.addRoute("GET", "/route", simpleHandler)
-	router.addRoute("GET", "/route/test/name", simpleHandler)
-	router.addRoute("POST", "/route", simpleHandler)
-	router.addRoute("GET", "/route/:name", dynamicHandler)
-	router.addRoute("POST", "/route/:name", dynamicHandler)
-	router.addRoute("POST", "/route/:name/test/:param/name/", dynamicHandler)
+	router.addRoute("GET", "/", http.HandlerFunc(simpleHandler))
+	router.addRoute("GET", "/testroute", http.HandlerFunc(simpleHandler))
+	router.addRoute("GET", "/route", http.HandlerFunc(simpleHandler))
+	router.addRoute("GET", "/route/test/name", http.HandlerFunc(simpleHandler))
+	router.addRoute("POST", "/route", http.HandlerFunc(simpleHandler))
+	router.addRoute("GET", "/route/:name", http.HandlerFunc(dynamicHandler))
+	router.addRoute("POST", "/route/:name", http.HandlerFunc(dynamicHandler))
+	router.addRoute("POST", "/route/:name/test/:param/name/", http.HandlerFunc(dynamicHandler))
 
 	req, _ := http.NewRequest("GET", "/testroute", nil)
 	w := httptest.NewRecorder()
@@ -161,7 +161,7 @@ func TestResolve(t *testing.T) {
 	assert.NotNil(t, node.fn)
 	assertFuncEquals(t, dynamicHandler, node.fn)
 
-	node.fn(w, req)
+	node.fn.ServeHTTP(w, req)
 	assert.Equal(t, "dynamic core attr", w.Body.String())
 
 	req, _ = http.NewRequest("POST", "/route/core", nil)
@@ -171,7 +171,7 @@ func TestResolve(t *testing.T) {
 	assert.NotNil(t, node.fn)
 	assertFuncEquals(t, dynamicHandler, node.fn)
 
-	node.fn(w, req)
+	node.fn.ServeHTTP(w, req)
 	assert.Equal(t, "dynamic core ", w.Body.String())
 
 }

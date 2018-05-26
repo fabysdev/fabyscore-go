@@ -61,10 +61,10 @@ func TestRoutes(t *testing.T) {
 func TestGroup(t *testing.T) {
 	app := NewApp()
 	app.Group("/test",
-		&Route{Method: "GET", Path: "/", Fn: routeHandler},
-		&Route{Method: "GET", Path: "/route", Fn: routeHandler},
+		&Route{Method: "GET", Path: "/", Fn: http.HandlerFunc(routeHandler)},
+		&Route{Method: "GET", Path: "/route", Fn: http.HandlerFunc(routeHandler)},
 
-		&Route{Method: "POST", Path: "/route", Fn: routeHandler},
+		&Route{Method: "POST", Path: "/route", Fn: http.HandlerFunc(routeHandler)},
 	)
 
 	tree := app.router.dumpTree()
@@ -103,19 +103,19 @@ func TestGroup(t *testing.T) {
 
 	app = NewApp()
 	app.Group("test/",
-		&Route{Method: "GET", Path: "", Fn: routeHandler},
-		&Route{Method: "GET", Path: "route", Fn: routeHandler},
+		&Route{Method: "GET", Path: "", Fn: http.HandlerFunc(routeHandler)},
+		&Route{Method: "GET", Path: "route", Fn: http.HandlerFunc(routeHandler)},
 
-		&Route{Method: "POST", Path: "route", Fn: routeHandler},
+		&Route{Method: "POST", Path: "route", Fn: http.HandlerFunc(routeHandler)},
 	)
 	assert.Equal(t, tree, app.router.dumpTree())
 
 	app = NewApp()
 	app.Group("/test",
-		&Route{Method: "GET", Path: "/", Fn: routeHandler},
-		&Route{Method: "GET", Path: "route", Fn: routeHandler},
+		&Route{Method: "GET", Path: "/", Fn: http.HandlerFunc(routeHandler)},
+		&Route{Method: "GET", Path: "route", Fn: http.HandlerFunc(routeHandler)},
 
-		&Route{Method: "POST", Path: "route", Fn: routeHandler},
+		&Route{Method: "POST", Path: "route", Fn: http.HandlerFunc(routeHandler)},
 	)
 	assert.Equal(t, tree, app.router.dumpTree())
 }

@@ -42,7 +42,7 @@ type App struct {
 	router          *router
 	notFoundHandler http.HandlerFunc
 
-	globalMiddlewares middlewares
+	middlewares middlewares
 }
 
 // NewApp returns an App instance.
@@ -50,7 +50,7 @@ func NewApp() *App {
 	app := &App{}
 
 	app.router = newRouter()
-	app.globalMiddlewares = middlewares{}
+	app.middlewares = middlewares{}
 
 	return app
 }
@@ -58,6 +58,8 @@ func NewApp() *App {
 // Run starts a http.Server for the application with the given addr.
 // This method blocks the calling goroutine.
 func (a *App) Run(addr string) {
+	a.middlewares = nil
+
 	http.ListenAndServe(addr, a)
 }
 
@@ -74,7 +76,7 @@ func (a *App) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	node.fn(w, req)
+	node.fn.ServeHTTP(w, req)
 }
 
 // GET adds a new request handler for a GET request with the given path.
@@ -161,16 +163,25 @@ func (a *App) UseWithSort(fn MiddlewareFunc, sorting int) {
 		panic("App middlewares must be defined before the routes")
 	}
 
-	a.globalMiddlewares = append(a.globalMiddlewares, middleware{
+	a.middlewares = append(a.middlewares, middleware{
 		fn:   fn,
 		sort: sorting,
 	})
 
-	sort.Sort(a.globalMiddlewares)
+	sort.Sort(a.middlewares)
 }
 
 // UseWithSort @todo
-func (a *App) addRoute(method, path string, fn http.HandlerFunc) {
+func (a *App) addRoute(method, path string, fn http.Handler) {
+	// create handler function with all middlewares
+	middlewaresLen := len(a.middlewares)
+	if middlewaresLen > 0 {
+		for i := middlewaresLen - 1; i >= 0; i-- {
+			fn = a.middlewares[i].fn(fn)
+		}
+	}
+
+	// add route to router
 	a.router.addRoute(method, path, fn)
 }
 
