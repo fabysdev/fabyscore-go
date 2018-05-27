@@ -14,4 +14,4 @@ install:
   - dep ensure
 
 script:
-  - go test -v -coverprofile=coverage.out -covermode=count
+  - go test
