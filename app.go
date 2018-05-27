@@ -6,44 +6,12 @@ import (
 	"strings"
 )
 
-//----------------------------------------------------------------------------------------------------------------------
-
-// MiddlewareFunc @todo
-type MiddlewareFunc func(http.Handler) http.Handler
-
-// @todo, comment?
-type middleware struct {
-	fn   MiddlewareFunc
-	sort int
-}
-
-// @todo, comment
-type middlewares []middleware
-
-// See sort.Interface Len().
-func (slice middlewares) Len() int {
-	return len(slice)
-}
-
-// See sort.Interface Less().
-func (slice middlewares) Less(i, j int) bool {
-	return slice[i].sort < slice[j].sort
-}
-
-// See sort.Interface Swap().
-func (slice middlewares) Swap(i, j int) {
-	slice[i], slice[j] = slice[j], slice[i]
-}
-
-//----------------------------------------------------------------------------------------------------------------------
-
-// App is the main fabyscore instance.
+// App is the main instance.
 // Create a new instance by using NewApp().
 type App struct {
 	router          *router
 	notFoundHandler http.HandlerFunc
-
-	middlewares middlewares
+	middlewares     middlewares
 }
 
 // NewApp returns an App instance.
@@ -125,7 +93,7 @@ func (a *App) TRACE(route string, fn http.HandlerFunc, middlewares ...Middleware
 	a.addRoute("TRACE", route, fn, middlewares)
 }
 
-// Any adds a route for all HTTP methods.
+// Any adds a route for all available methods.
 func (a *App) Any(route string, fn http.HandlerFunc, middlewares ...MiddlewareFunc) {
 	a.GET(route, fn, middlewares...)
 	a.POST(route, fn, middlewares...)
@@ -138,7 +106,7 @@ func (a *App) Any(route string, fn http.HandlerFunc, middlewares ...MiddlewareFu
 	a.TRACE(route, fn, middlewares...)
 }
 
-// Group adds multiple routes with common path prefix.
+// Group adds multiple routes with a common path prefix.
 func (a *App) Group(path string, fn GroupSetupFunc) {
 	basePath := strings.Trim(path, "/")
 	if basePath != "" {
@@ -159,13 +127,13 @@ func (a *App) SetNotFoundHandler(fn http.HandlerFunc) {
 	a.notFoundHandler = fn
 }
 
-// Use @todo
-// Defaults to a sort of 0. Use `UseWithSort` to set an sort for a middleware.
+// Use adds an middleware on application level.
+// Defaults to a sorting of 0. Use `UseWithSort` to set an sorting for a middleware.
 func (a *App) Use(fn MiddlewareFunc) {
 	a.UseWithSort(fn, 0)
 }
 
-// UseWithSort @todo
+// UseWithSort adds an middleware with an custom sorting value on application level.
 func (a *App) UseWithSort(fn MiddlewareFunc, sorting int) {
 	if a.router.hasRoutes {
 		panic("App middlewares must be defined before the routes")
@@ -179,7 +147,7 @@ func (a *App) UseWithSort(fn MiddlewareFunc, sorting int) {
 	sort.Sort(a.middlewares)
 }
 
-// addRoute @todo
+// addRoute adds a route to the router with the middleware aware handler.
 func (a *App) addRoute(method, path string, fn http.Handler, middlewares []MiddlewareFunc) {
 	// create handler with route middlewares
 	middlewaresLen := len(middlewares)

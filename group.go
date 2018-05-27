@@ -6,10 +6,10 @@ import (
 	"strings"
 )
 
-// GroupSetupFunc @todo
+// GroupSetupFunc is the type for the group setup function.
 type GroupSetupFunc func(g *Group)
 
-// Group @todo
+// Group defines a route group.
 type Group struct {
 	basePath    string
 	middlewares middlewares
@@ -18,13 +18,13 @@ type Group struct {
 	hasRoutes bool
 }
 
-// Use @todo
+// Use adds an middleware on group level.
 // Defaults to a sort of 0. Use `UseWithSort` to set an sort for a middleware.
 func (g *Group) Use(fn MiddlewareFunc) {
 	g.UseWithSort(fn, 0)
 }
 
-// UseWithSort @todo
+// UseWithSort adds an middleware with an custom sorting value on group level.
 func (g *Group) UseWithSort(fn MiddlewareFunc, sorting int) {
 	if g.hasRoutes {
 		panic("Group middlewares must be defined before the routes")
@@ -83,7 +83,7 @@ func (g *Group) TRACE(route string, fn http.HandlerFunc, middlewares ...Middlewa
 	g.addRoute("TRACE", route, fn, middlewares)
 }
 
-// addRoute @todo
+// addRoute adds a gorup route to the router with the middleware aware handler.
 func (g *Group) addRoute(method, path string, fn http.Handler, middlewares []MiddlewareFunc) {
 	groupRouteMiddlewares := []MiddlewareFunc{}
 	for _, middleware := range g.middlewares {
