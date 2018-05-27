@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"sort"
 	"strings"
+	"time"
 )
 
 // App is the main instance.
@@ -26,10 +27,22 @@ func NewApp() *App {
 
 // Run starts a http.Server for the application with the given addr.
 // This method blocks the calling goroutine.
-func (a *App) Run(addr string) {
+func (a *App) Run(addr string, options ...ServerOption) {
 	a.middlewares = nil
 
-	http.ListenAndServe(addr, a)
+	srv := &http.Server{
+		ReadHeaderTimeout: 5 * time.Second,
+		IdleTimeout:       120 * time.Second,
+	}
+
+	for _, option := range options {
+		option(srv)
+	}
+
+	srv.Addr = addr
+	srv.Handler = a
+
+	srv.ListenAndServe()
 }
 
 // See http.Handler interface's ServeHTTP.
