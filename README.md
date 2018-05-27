@@ -1,14 +1,14 @@
-#FabysCore GO
+# FabysCore GO
 
 
 
-##Warning
+## Warning
 
 The API is not yet stable! Some things will change.  
 Please wait for a 1.0 release if you're not willing to update your code frequently.
 
 
-##Usage
+## Usage
 
 ```
 go get github.com/fabyscore/fabyscore-go
@@ -30,11 +30,11 @@ func main() {
 }
 
 func fabyscoreHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprint(w, "Hello!")
+  fmt.Fprint(w, "Hello!")
 }
 ```
 
-###Routes
+### Routes
 ```go
 // GET
 app.GET("/", fabyscoreHandler)
@@ -63,7 +63,7 @@ app.Group("/test", func(g *Group) {
 })
 ```
 
-####Not Found Handler
+#### Not Found Handler
 ```go
 func fabyscoreNotFoundHandler(w http.ResponseWriter, r *http.Request) {
   fmt.Fprint(w, "404 - Not Found")
@@ -73,23 +73,23 @@ app.SetNotFoundHandler(fabyscoreNotFoundHandler)
 ```
 
 
-###Middlewares
+### Middlewares
 
 Middlewares are standard `net/http` middleware handlers.
 
 ```go
 func appMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+  return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
     fmt.Println("app start")
-    
+
     next.ServeHTTP(w, r)
-    
-		fmt.Println("app end")
-	})
+
+    fmt.Println("app end")
+  })
 }
 ```
 
-####App Middlewares
+#### App Middlewares
 
 App middlewares are defined on application level and are executed for every request, except for non existing routes. (e.g. a request logger)
 
@@ -98,7 +98,7 @@ app.Use(appMiddleware)
 app.UseWithSort(appMiddleware, 0)
 ```
 
-####Route Middlewares
+#### Route Middlewares
 
 Route middlewares are defined on the route level.
 
@@ -114,5 +114,5 @@ app.Group("/test", func(g *Group) {
 ```
 
 
-##License
+## License
 Code and documentation released under the [MIT license](https://github.com/fabyscore/fabyscore-go/blob/master/LICENSE).
