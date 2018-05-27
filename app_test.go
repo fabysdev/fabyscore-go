@@ -7,6 +7,7 @@ import (
 	"reflect"
 	"runtime"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -47,7 +48,7 @@ func TestRun(t *testing.T) {
 	assert.NotNil(t, app.middlewares)
 	assert.Len(t, app.middlewares, 3)
 
-	app.Run(":1000000000")
+	app.Run(":1000000000", ServerReadHeaderTimeout(1*time.Second), ServerIdleTimeout(1*time.Second))
 
 	assert.Nil(t, app.middlewares)
 }
