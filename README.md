@@ -28,12 +28,10 @@ func main() {
   
   app.Run(":8080")
 }
-  
-func fabyscoreHandler(w http.ResponseWriter, r *http.Request) (http.ResponseWriter, *http.Request) {
-  fmt.Fprint(w, "Hello!")
-  return w, r
-}
 
+func fabyscoreHandler(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprint(w, "Hello!")
+}
 ```
 
 ###Routes
@@ -57,65 +55,63 @@ app.OPTIONS("/", fabyscoreHandler)
 app.Any("/", fabyscoreHandler)
   
 // Group
-app.Group("/test", Modifiers{}, 
-  &Route{Method: "GET", Path: "/", Fn: fabyscoreHandler},
-  &Route{Method: "GET", Path: "/route", Fn: fabyscoreHandler},
-  
-  &Route{Method: "POST", Path: "/route", Fn: fabyscoreHandler},
-)
+app.Group("/test", func(g *Group) {
+  g.GET("/", fabyscoreHandler)
+  g.GET("/route", fabyscoreHandler)
+
+  g.POST("/route", fabyscoreHandler)
+})
 ```
 
 ####Not Found Handler
 ```go
-func fabyscoreNotFoundHandler(w http.ResponseWriter, req *http.Request) (http.ResponseWriter, *http.Request) {
+func fabyscoreNotFoundHandler(w http.ResponseWriter, r *http.Request) {
   fmt.Fprint(w, "404 - Not Found")
-  return w, req
 }
 
 app.SetNotFoundHandler(fabyscoreNotFoundHandler)
 ```
 
 
-###Modifiers
+###Middlewares
 
-A modifier can change the response and/or the request before the route handler is invoked.   
-No further modifier (or the route handler) will be invoked if a modifier does not return a request.
+Middlewares are standard `net/http` middleware handlers.
 
 ```go
-func fabyscoreModifier(w http.ResponseWriter, req *http.Request) (http.ResponseWriter, *http.Request) {
-  req.Header.Add("X-Test", "Test")
-  return w, req
+func appMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+    fmt.Println("app start")
+    
+    next.ServeHTTP(w, r)
+    
+		fmt.Println("app end")
+	})
 }
 ```
 
-####App Modifiers
+####App Middlewares
 
-App modifiers are defined on application level and are executed for every request. (e.g. a request logger)
+App middlewares are defined on application level and are executed for every request, except for non existing routes. (e.g. a request logger)
 
 ```go
-app.AddBeforeModifier(0, fabyscoreModifier)
+app.Use(appMiddleware)
+app.UseWithSort(appMiddleware, 0)
 ```
 
-#####BeforeModifiers
+####Route Middlewares
 
-Before Modifiers are executed before the route is resolved.
-
-```go
-app.AddModifier(0, fabyscoreModifier)
-```
-
-####Route Modifiers
-
-Route modifiers are defined on the route level.
+Route middlewares are defined on the route level.
 
 ```go
-app.GET("/", fabyscoreHandler, fabyscore.NewModifier(0, fabyscoreModifier), fabyscore.NewModifier(1, fabyscoreModifier))
+app.GET("/", fabyscoreHandler, routeMiddleware, routeMiddlewareTwo)
   
-app.Group("/test", fabyscore.Modifiers{fabyscore.NewModifier(0, fabyscoreModifier)},
-  &fabyscore.Route{Method: "GET", Path: "/", Fn: fabyscoreHandler, Modifiers: fabyscore.Modifiers{fabyscore.NewModifier(0, fabyscoreModifier)}},
-)
-```
+app.Group("/test", func(g *Group) {
+  app.Use(groupMiddleware)
+  app.UseWithSort(groupMiddleware, 0)
 
+  g.GET("/", fabyscoreHandler, routeMiddleware, routeMiddlewareTwo)
+})
+```
 
 
 ##License
