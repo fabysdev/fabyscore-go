@@ -1,9 +1,14 @@
 package fabyscore
 
 import (
+	"context"
+	"log"
 	"net/http"
+	"os"
+	"os/signal"
 	"sort"
 	"strings"
+	"syscall"
 	"time"
 )
 
@@ -30,6 +35,7 @@ func NewApp() *App {
 func (a *App) Run(addr string, options ...ServerOption) {
 	a.middlewares = nil
 
+	// create http.Server
 	srv := &http.Server{
 		ReadHeaderTimeout: 5 * time.Second,
 		IdleTimeout:       120 * time.Second,
@@ -42,7 +48,29 @@ func (a *App) Run(addr string, options ...ServerOption) {
 	srv.Addr = addr
 	srv.Handler = a
 
-	srv.ListenAndServe()
+	// graceful shutdown
+	done := make(chan bool)
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
+
+	go func() {
+		<-quit
+
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+
+		srv.SetKeepAlivesEnabled(false)
+		srv.Shutdown(ctx)
+
+		close(done)
+	}()
+
+	if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		log.Printf("ListenAndServe failed: %v\n", err)
+		close(done)
+	}
+
+	<-done
 }
 
 // See http.Handler interface's ServeHTTP.
