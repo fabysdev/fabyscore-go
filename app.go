@@ -65,7 +65,7 @@ func (a *App) Run(addr string, options ...ServerOption) {
 		close(done)
 	}()
 
-	if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+	if err := srv.ListenAndServe(); err != http.ErrServerClosed {
 		log.Printf("ListenAndServe failed: %v\n", err)
 		close(done)
 	}
