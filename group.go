@@ -31,8 +31,8 @@ func (g *Group) UseWithSort(fn MiddlewareFunc, sorting int) {
 	}
 
 	g.middlewares = append(g.middlewares, middleware{
-		fn:   fn,
-		sort: sorting,
+		fn:      fn,
+		sorting: sorting,
 	})
 
 	sort.Sort(g.middlewares)

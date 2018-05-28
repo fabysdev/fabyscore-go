@@ -7,8 +7,8 @@ type MiddlewareFunc func(http.Handler) http.Handler
 
 // middleware is the type for an sort aware middleware.
 type middleware struct {
-	fn   MiddlewareFunc
-	sort int
+	fn      MiddlewareFunc
+	sorting int
 }
 
 // middlewares is a sortable middleware slice implementing sort.Interface.
@@ -21,7 +21,7 @@ func (slice middlewares) Len() int {
 
 // See sort.Interface Less().
 func (slice middlewares) Less(i, j int) bool {
-	return slice[i].sort < slice[j].sort
+	return slice[i].sorting < slice[j].sorting
 }
 
 // See sort.Interface Swap().

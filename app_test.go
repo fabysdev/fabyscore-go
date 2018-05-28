@@ -34,9 +34,9 @@ func TestUse(t *testing.T) {
 	app.UseWithSort(appMiddleware, 4)
 
 	assert.Len(t, app.middlewares, 3)
-	assert.Equal(t, -255, app.middlewares[0].sort)
-	assert.Equal(t, 0, app.middlewares[1].sort)
-	assert.Equal(t, 4, app.middlewares[2].sort)
+	assert.Equal(t, -255, app.middlewares[0].sorting)
+	assert.Equal(t, 0, app.middlewares[1].sorting)
+	assert.Equal(t, 4, app.middlewares[2].sorting)
 }
 
 func TestRun(t *testing.T) {
@@ -194,9 +194,9 @@ func TestGroupUse(t *testing.T) {
 	})
 
 	assert.Len(t, group.middlewares, 3)
-	assert.Equal(t, -255, group.middlewares[0].sort)
-	assert.Equal(t, 0, group.middlewares[1].sort)
-	assert.Equal(t, 4, group.middlewares[2].sort)
+	assert.Equal(t, -255, group.middlewares[0].sorting)
+	assert.Equal(t, 0, group.middlewares[1].sorting)
+	assert.Equal(t, 4, group.middlewares[2].sorting)
 }
 
 func TestGroupUsePanics(t *testing.T) {

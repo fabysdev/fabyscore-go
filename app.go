@@ -182,8 +182,8 @@ func (a *App) UseWithSort(fn MiddlewareFunc, sorting int) {
 	}
 
 	a.middlewares = append(a.middlewares, middleware{
-		fn:   fn,
-		sort: sorting,
+		fn:      fn,
+		sorting: sorting,
 	})
 
 	sort.Sort(a.middlewares)
