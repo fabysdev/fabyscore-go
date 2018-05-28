@@ -30,8 +30,8 @@ func TestUse(t *testing.T) {
 	app := NewApp()
 
 	app.Use(appMiddleware)
-	app.UseWithSort(appMiddleware, -255)
-	app.UseWithSort(appMiddleware, 4)
+	app.UseWithSorting(appMiddleware, -255)
+	app.UseWithSorting(appMiddleware, 4)
 
 	assert.Len(t, app.middlewares, 3)
 	assert.Equal(t, -255, app.middlewares[0].sorting)
@@ -42,8 +42,8 @@ func TestUse(t *testing.T) {
 func TestRun(t *testing.T) {
 	app := NewApp()
 	app.Use(appMiddleware)
-	app.UseWithSort(appMiddleware, -255)
-	app.UseWithSort(appMiddleware, 4)
+	app.UseWithSorting(appMiddleware, -255)
+	app.UseWithSorting(appMiddleware, 4)
 
 	assert.NotNil(t, app.middlewares)
 	assert.Len(t, app.middlewares, 3)
@@ -187,8 +187,8 @@ func TestGroupUse(t *testing.T) {
 	var group *Group
 	app.Group("/test", func(g *Group) {
 		g.Use(appMiddleware)
-		g.UseWithSort(appMiddleware, -255)
-		g.UseWithSort(appMiddleware, 4)
+		g.UseWithSorting(appMiddleware, -255)
+		g.UseWithSorting(appMiddleware, 4)
 
 		group = g
 	})
@@ -217,7 +217,7 @@ func TestGroupUsePanics(t *testing.T) {
 func TestServeHTTPMiddlewareNoNext(t *testing.T) {
 	app := NewApp()
 	app.Use(appMiddleware)
-	app.UseWithSort(appMiddlewareNoNext, -255)
+	app.UseWithSorting(appMiddlewareNoNext, -255)
 
 	app.GET("/testroute", routeHandler, appRouteMiddleware, appRouteMiddleware)
 
@@ -233,7 +233,7 @@ func TestServeHTTPMiddlewareNoNext(t *testing.T) {
 func TestServeHTTPMiddlewareNoNextWithAppMiddleware(t *testing.T) {
 	app := NewApp()
 	app.Use(appMiddleware)
-	app.UseWithSort(appMiddlewareNoNext, 255)
+	app.UseWithSorting(appMiddlewareNoNext, 255)
 
 	app.GET("/testroute", routeHandler, appRouteMiddleware, appRouteMiddleware)
 

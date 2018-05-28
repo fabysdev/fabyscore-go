@@ -21,11 +21,11 @@ type Group struct {
 // Use adds an middleware on group level.
 // Defaults to a sort of 0. Use `UseWithSort` to set an sort for a middleware.
 func (g *Group) Use(fn MiddlewareFunc) {
-	g.UseWithSort(fn, 0)
+	g.UseWithSorting(fn, 0)
 }
 
-// UseWithSort adds an middleware with an custom sorting value on group level.
-func (g *Group) UseWithSort(fn MiddlewareFunc, sorting int) {
+// UseWithSorting adds an middleware with an custom sorting value on group level.
+func (g *Group) UseWithSorting(fn MiddlewareFunc, sorting int) {
 	if g.hasRoutes {
 		panic("Group middlewares must be defined before the routes")
 	}

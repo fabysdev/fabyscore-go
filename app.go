@@ -172,11 +172,11 @@ func (a *App) SetNotFoundHandler(fn http.HandlerFunc) {
 // Use adds an middleware on application level.
 // Defaults to a sorting of 0. Use `UseWithSort` to set an sorting for a middleware.
 func (a *App) Use(fn MiddlewareFunc) {
-	a.UseWithSort(fn, 0)
+	a.UseWithSorting(fn, 0)
 }
 
-// UseWithSort adds an middleware with an custom sorting value on application level.
-func (a *App) UseWithSort(fn MiddlewareFunc, sorting int) {
+// UseWithSorting adds an middleware with an custom sorting value on application level.
+func (a *App) UseWithSorting(fn MiddlewareFunc, sorting int) {
 	if a.router.hasRoutes {
 		panic("App middlewares must be defined before the routes")
 	}

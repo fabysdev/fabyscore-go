@@ -97,7 +97,7 @@ App middlewares are defined on application level and are executed for every requ
 
 ```go
 app.Use(appMiddleware)
-app.UseWithSort(appMiddleware, 0)
+app.UseWithSorting(appMiddleware, 0)
 ```
 
 #### Route Middlewares
@@ -108,8 +108,8 @@ Route middlewares are defined on the route level.
 app.GET("/", fabyscoreHandler, routeMiddleware, routeMiddlewareTwo)
   
 app.Group("/test", func(g *Group) {
-  app.Use(groupMiddleware)
-  app.UseWithSort(groupMiddleware, 0)
+  g.Use(groupMiddleware)
+  g.UseWithSorting(groupMiddleware, 0)
 
   g.GET("/", fabyscoreHandler, routeMiddleware, routeMiddlewareTwo)
 })
