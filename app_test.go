@@ -48,7 +48,7 @@ func TestRun(t *testing.T) {
 	assert.NotNil(t, app.middlewares)
 	assert.Len(t, app.middlewares, 3)
 
-	app.Run(":1000000000", ServerReadHeaderTimeout(1*time.Second), ServerIdleTimeout(1*time.Second))
+	app.Run(":1000000000", ServerReadHeaderTimeout(1*time.Second), ServerIdleTimeout(1*time.Second), ServerWriteTimeout(1*time.Second))
 
 	assert.Nil(t, app.middlewares)
 }

@@ -21,3 +21,10 @@ func ServerIdleTimeout(d time.Duration) ServerOption {
 		srv.IdleTimeout = d
 	}
 }
+
+// ServerWriteTimeout returns a ServerOption for setting the `http.Server`.`WriteTimeout`
+func ServerWriteTimeout(d time.Duration) ServerOption {
+	return func(srv *http.Server) {
+		srv.WriteTimeout = d
+	}
+}
