@@ -33,6 +33,7 @@ func NewApp() *App {
 // Run starts a http.Server for the application with the given addr.
 // This method blocks the calling goroutine.
 func (a *App) Run(addr string, options ...ServerOption) {
+	// unset middlewares, they are only used during setup to create the final handler functions
 	a.middlewares = nil
 
 	// create http.Server
