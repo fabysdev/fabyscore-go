@@ -50,10 +50,10 @@ func (a *App) Run(addr string, options ...ServerOption) {
 
 	// graceful shutdown
 	done := make(chan bool)
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
-
 	go func() {
+		quit := make(chan os.Signal, 1)
+		signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
+
 		<-quit
 
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
