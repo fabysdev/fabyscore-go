@@ -11,6 +11,8 @@ Please wait for a 1.0 release if you're not willing to update your code frequent
 ## Usage
 
 ```
+dep ensure -add github.com/fabyscore/fabyscore-go
+
 go get github.com/fabyscore/fabyscore-go
 ```
 
