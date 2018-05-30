@@ -1,4 +1,4 @@
-package fabyscore
+package server
 
 // ContextKey is the type of the key for predefined context keys (e.g. request-id).
 // const RequestIdCtxKey = &ContextKey{"request-id"}

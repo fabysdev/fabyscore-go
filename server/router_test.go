@@ -1,4 +1,4 @@
-package fabyscore
+package server
 
 import (
 	"fmt"
@@ -50,7 +50,7 @@ func TestAddRouteDynamic(t *testing.T) {
 	assert.Equal(t, 1, countDynamicNodes(router.trees.getRoot("GET")))
 
 	router.addRoute("GET", "/route/:name/test/:param/name/", http.HandlerFunc(dynamicHandler))
-	assert.Equal(t, "GET:\n/\n  route\n    :name\n      test\n        :param\n          name\n            \n\n\n", router.dumpTree())
+	assert.Equal(t, "GET:\n/\n  route\n    :name\n      test\n        :param\n          name\n\n\n", router.dumpTree())
 	assert.Equal(t, 2, countDynamicNodes(router.trees.getRoot("GET")))
 }
 

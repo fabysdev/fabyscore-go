@@ -1,4 +1,4 @@
-package fabyscore
+package server
 
 import "net/http"
 

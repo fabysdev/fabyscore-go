@@ -1,4 +1,4 @@
-package fabyscore
+package server
 
 // tree contains the http method and the root node.
 type tree struct {

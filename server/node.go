@@ -1,4 +1,4 @@
-package fabyscore
+package server
 
 import (
 	"context"
@@ -24,10 +24,14 @@ func (n *node) add(path string, fn http.Handler) {
 	}
 
 	parts := strings.Split(path, "/")[1:]
+	if parts[len(parts)-1] == "" {
+		parts = parts[:len(parts)-1]
+	}
 
 	var resolvedNode *node
 	for i := 0; i < len(parts); i++ {
 		part := parts[i]
+
 		resolvedNode = n.load(part)
 		if resolvedNode == nil {
 			resolvedNode = &node{
@@ -54,12 +58,17 @@ func (n *node) resolve(req *http.Request) (*node, *http.Request) {
 		return n, req
 	}
 
-	parts := strings.Split(req.URL.Path, "/")[1:]
+	path := req.URL.Path
+	pathLen := len(path)
 
+	startIndex := 1
 	var ctx context.Context
-	for i := 0; i < len(parts); i++ {
-		part := parts[i]
-		n = n.load(part)
+	for i := 1; i < pathLen; i++ {
+		if path[i] != '/' {
+			continue
+		}
+
+		n = n.load(path[startIndex:i])
 		if n == nil {
 			return nil, nil
 		}
@@ -69,7 +78,24 @@ func (n *node) resolve(req *http.Request) (*node, *http.Request) {
 				ctx = req.Context()
 			}
 
-			ctx = context.WithValue(ctx, dynamicContextKey(n.path[1:]), part)
+			ctx = context.WithValue(ctx, dynamicContextKey(n.path[1:]), path[startIndex:i])
+		}
+
+		startIndex = i + 1
+	}
+
+	if startIndex != pathLen {
+		n = n.load(path[startIndex:])
+		if n == nil {
+			return nil, nil
+		}
+
+		if n.isDynamic {
+			if ctx == nil {
+				ctx = req.Context()
+			}
+
+			ctx = context.WithValue(ctx, dynamicContextKey(n.path[1:]), path[startIndex:])
 		}
 	}
 

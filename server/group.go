@@ -1,4 +1,4 @@
-package fabyscore
+package server
 
 import (
 	"net/http"
@@ -13,7 +13,7 @@ type GroupSetupFunc func(g *Group)
 type Group struct {
 	basePath    string
 	middlewares middlewares
-	app         *App
+	srv         *Server
 
 	hasRoutes bool
 }
@@ -92,7 +92,7 @@ func (g *Group) addRoute(method, path string, fn http.Handler, middlewares []Mid
 
 	groupRouteMiddlewares = append(groupRouteMiddlewares, middlewares...)
 
-	g.app.addRoute(method, g.basePath+"/"+strings.TrimLeft(path, "/"), fn, groupRouteMiddlewares)
+	g.srv.addRoute(method, g.basePath+"/"+strings.TrimLeft(path, "/"), fn, groupRouteMiddlewares)
 
 	g.hasRoutes = true
 }
