@@ -18,7 +18,9 @@ go get github.com/fabysdev/fabyscore-go
 
 ## Components
 
-### HTTP Server Router
+### Server
+
+HTTP Server Router
 
 ```go
 package main
@@ -40,6 +42,19 @@ func fabyscoreHandler(w http.ResponseWriter, r *http.Request) {
 }
 ```
 
+### Middleware
+
+`net/http` middleware handlers.
+
+```go
+package main
+  
+import "github.com/fabysdev/fabyscore-go/middleware"
+  
+func main() {
+  timeout := middleware.Timeout(1*time.Second)
+}
+```
 
 ## License
 Code and documentation released under the [MIT license](https://github.com/fabysdev/fabyscore-go/blob/master/LICENSE).
