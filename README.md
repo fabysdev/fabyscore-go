@@ -1,6 +1,6 @@
 # FabysCore GO
 
-
+[![Build Status](https://travis-ci.org/fabysdev/fabyscore-go.svg?branch=master)](https://travis-ci.org/fabysdev/fabyscore-go)
 
 ## Warning
 
