@@ -384,34 +384,38 @@ func TestShutdown(t *testing.T) {
 
 	srv := New()
 
+	mu := &sync.Mutex{}
 	ok := false
 	fail := false
 
 	go func() {
 		srv.Run(":8888")
+		mu.Lock()
 		ok = true
 
 		if !fail {
 			wg.Done()
 		}
+		mu.Unlock()
 	}()
 
 	go func() {
 		<-time.After(1 * time.Second)
+		mu.Lock()
 		if ok {
+			mu.Unlock()
 			return
 		}
 
 		t.Error("Server did not shutdown after 1s")
 		fail = true
 		wg.Done()
+		mu.Unlock()
 	}()
 
 	<-time.After(100 * time.Millisecond)
 
-	if !fail {
-		srv.quit <- os.Interrupt
-	}
+	srv.quit <- os.Interrupt
 
 	wg.Wait()
 }

@@ -29,6 +29,9 @@ func New() *Server {
 	s.router = newRouter()
 	s.middlewares = middlewares{}
 
+	s.quit = make(chan os.Signal, 1)
+	signal.Notify(s.quit, os.Interrupt, syscall.SIGTERM)
+
 	return s
 }
 
@@ -54,9 +57,6 @@ func (s *Server) Run(addr string, options ...Option) {
 	// graceful shutdown
 	done := make(chan bool)
 	go func() {
-		s.quit = make(chan os.Signal, 1)
-		signal.Notify(s.quit, os.Interrupt, syscall.SIGTERM)
-
 		<-s.quit
 
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
