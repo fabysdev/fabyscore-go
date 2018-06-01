@@ -18,6 +18,8 @@ type Server struct {
 	router          *router
 	notFoundHandler http.HandlerFunc
 	middlewares     middlewares
+
+	quit chan os.Signal
 }
 
 // New returns an Server instance.
@@ -52,10 +54,10 @@ func (s *Server) Run(addr string, options ...Option) {
 	// graceful shutdown
 	done := make(chan bool)
 	go func() {
-		quit := make(chan os.Signal, 1)
-		signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
+		s.quit = make(chan os.Signal, 1)
+		signal.Notify(s.quit, os.Interrupt, syscall.SIGTERM)
 
-		<-quit
+		<-s.quit
 
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()

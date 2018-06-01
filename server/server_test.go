@@ -4,8 +4,10 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"reflect"
 	"runtime"
+	"sync"
 	"testing"
 	"time"
 
@@ -374,6 +376,44 @@ func TestServer(t *testing.T) {
 	w = httptest.NewRecorder()
 	srv.ServeHTTP(w, req)
 	assert.Equal(t, "b123asdfcontr", w.Body.String())
+}
+
+func TestShutdown(t *testing.T) {
+	var wg sync.WaitGroup
+	wg.Add(1)
+
+	srv := New()
+
+	ok := false
+	fail := false
+
+	go func() {
+		srv.Run(":8888")
+		ok = true
+
+		if !fail {
+			wg.Done()
+		}
+	}()
+
+	go func() {
+		<-time.After(1 * time.Second)
+		if ok {
+			return
+		}
+
+		t.Error("Server did not shutdown after 1s")
+		fail = true
+		wg.Done()
+	}()
+
+	<-time.After(100 * time.Millisecond)
+
+	if !fail {
+		srv.quit <- os.Interrupt
+	}
+
+	wg.Wait()
 }
 
 //----------------------------------------------------------------------------------------------------------------------
