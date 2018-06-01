@@ -2,14 +2,13 @@
 
 `net/http` middleware handlers.
 
-
 ## Usage
 
 ```go
 package main
-  
+
 import "github.com/fabysdev/fabyscore-go/middleware"
-  
+
 func main() {
   timeout := middleware.Timeout(1*time.Second)
 }
@@ -26,4 +25,15 @@ timeout := middleware.Timeout(1*time.Second)
 
 e.g.
 srv.UseWithSorting(middleware.Timeout(1*time.Second), -255)
+```
+ 
+### RequestID
+
+Adds a request id with a prefix into the request context.
+
+```go
+reqID := middleware.RequestID("prefix")
+
+e.g.
+srv.UseWithSorting(middleware.RequestID("userservice"), -254)
 ```
