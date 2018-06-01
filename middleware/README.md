@@ -26,7 +26,7 @@ timeout := middleware.Timeout(1*time.Second)
 e.g.
 srv.UseWithSorting(middleware.Timeout(1*time.Second), -255)
 ```
- 
+
 ### RequestID
 
 Adds a request id with a prefix into the request context.
