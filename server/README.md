@@ -2,21 +2,20 @@
 
 HTTP Server Router
 
-
 ## Usage
 
 ```go
 package main
-  
+
 import "github.com/fabysdev/fabyscore-go/server"
 import "net/http"
 import "fmt"
-  
+
 func main() {
   srv := server.New();
-      
+
   srv.GET("/", fabyscoreHandler)
-  
+
   srv.Run(":8080")
 }
 
@@ -26,25 +25,26 @@ func fabyscoreHandler(w http.ResponseWriter, r *http.Request) {
 ```
 
 ### Routes
+
 ```go
 // GET
 srv.GET("/", fabyscoreHandler)
-  
+
 // POST
 srv.POST("/", fabyscoreHandler)
-  
+
 // PUT
 srv.PUT("/", fabyscoreHandler)
-  
+
 // DELETE
 srv.DELETE("/", fabyscoreHandler)
-  
+
 // OPTIONS
 srv.OPTIONS("/", fabyscoreHandler)
-  
+
 // Any
 srv.Any("/", fabyscoreHandler)
-  
+
 // Group
 srv.Group("/test", func(g *Group) {
   g.GET("/", fabyscoreHandler)
@@ -55,6 +55,7 @@ srv.Group("/test", func(g *Group) {
 ```
 
 #### Not Found Handler
+
 ```go
 func fabyscoreNotFoundHandler(w http.ResponseWriter, r *http.Request) {
   fmt.Fprint(w, "404 - Not Found")
@@ -62,7 +63,6 @@ func fabyscoreNotFoundHandler(w http.ResponseWriter, r *http.Request) {
 
 srv.SetNotFoundHandler(fabyscoreNotFoundHandler)
 ```
-
 
 ### Middlewares
 
@@ -95,7 +95,7 @@ Route middlewares are defined on the route level.
 
 ```go
 srv.GET("/", fabyscoreHandler, routeMiddleware, routeMiddlewareTwo)
-  
+
 srv.Group("/test", func(g *Group) {
   g.Use(groupMiddleware)
   g.UseWithSorting(groupMiddleware, 0)
@@ -113,12 +113,15 @@ srv.Run(":8080", ReadHeaderTimeout(5*time.Second), IdleTimeout(120*time.Second),
 ```
 
 #### ReadHeaderTimeout
+
 Option for setting the `http.Server`.`ReadHeaderTimeout`
 
 #### IdleTimeout
+
 Option for setting the `http.Server`.`IdleTimeout`
 
 #### WriteTimeout
+
 Option for setting the `http.Server`.`WriteTimeout`
 
 ### ContextKey
@@ -126,5 +129,5 @@ Option for setting the `http.Server`.`WriteTimeout`
 Is used to create unique context keys.
 
 ```go
-const RequestIdCtxKey = &ContextKey{"request-id"}
+var RequestIDContextKey = &ContextKey{"request-id"}
 ```
