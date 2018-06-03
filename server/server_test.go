@@ -389,7 +389,7 @@ func TestShutdown(t *testing.T) {
 	fail := false
 
 	go func() {
-		srv.Run(":8888")
+		srv.Run(":8765")
 		mu.Lock()
 		ok = true
 
