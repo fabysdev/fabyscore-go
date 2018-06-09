@@ -3,3 +3,4 @@ test/
 coverage.out
 coverage.html
 develop.ps1
+develop.sh
