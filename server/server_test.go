@@ -60,7 +60,7 @@ func TestRoutes(t *testing.T) {
 	srv.GET("/testroute", routeHandler, srvRouteMiddleware)
 	assert.Equal(t, "GET:\n/\n  testroute\n\n\n", srv.router.dumpTree())
 	req, _ := http.NewRequest("GET", "/testroute", nil)
-	node, req := srv.router.resolve(req)
+	node, _ := srv.router.resolve(req)
 	assert.NotNil(t, node)
 	assert.NotNil(t, node.fn)
 	assertFuncEquals(t, srvRouteMiddleware(http.HandlerFunc(routeHandler)), node.fn)
@@ -144,7 +144,7 @@ func TestGroup(t *testing.T) {
 	assert.Nil(t, node.fn)
 
 	req, _ = http.NewRequest("GET", "/test", nil)
-	node, req = srv.router.resolve(req)
+	node, _ = srv.router.resolve(req)
 	assert.NotNil(t, node)
 	assert.NotNil(t, node.fn)
 
