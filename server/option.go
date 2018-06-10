@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-// Option is a function type to modifiy the `http.Server` configuration.
+// Option is a function type to modify the `http.Server` configuration.
 type Option func(*http.Server)
 
 // ReadHeaderTimeout returns an Option for setting the `http.Server`.`ReadHeaderTimeout`
