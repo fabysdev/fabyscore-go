@@ -56,6 +56,30 @@ func main() {
 }
 ```
 
+### Cache
+
+In-Memory key-value store/cache.
+
+```go
+package main
+
+import "github.com/fabysdev/fabyscore-go/cache"
+
+func main() {
+  // create new cache
+  c := cache.New()
+
+  // add an item
+  c.Set("key", "value")
+
+  // get an item
+  item, found := c.Get("key")
+
+  // delete an item
+  c.Delete("key")
+}
+```
+
 ## License
 
 Code and documentation released under the [MIT license](https://github.com/fabysdev/fabyscore-go/blob/master/LICENSE).
