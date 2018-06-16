@@ -17,6 +17,8 @@ func main() {
   srv.GET("/", fabyscoreHandler)
 
   srv.Run(":8080")
+
+  srv.RunTLS(":8080", "cert.pem", "key.pem")
 }
 
 func fabyscoreHandler(w http.ResponseWriter, r *http.Request) {

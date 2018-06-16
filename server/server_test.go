@@ -1,7 +1,14 @@
 package server
 
 import (
+	"crypto/rand"
+	"crypto/rsa"
+	"crypto/x509"
+	"crypto/x509/pkix"
+	"encoding/pem"
 	"fmt"
+	"log"
+	"math/big"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -51,6 +58,20 @@ func TestRun(t *testing.T) {
 	assert.Len(t, srv.middlewares, 3)
 
 	srv.Run(":1000000000", ReadHeaderTimeout(1*time.Second), IdleTimeout(1*time.Second), WriteTimeout(1*time.Second))
+
+	assert.Nil(t, srv.middlewares)
+}
+
+func TestRunTLS(t *testing.T) {
+	srv := New()
+	srv.Use(srvMiddleware)
+	srv.UseWithSorting(srvMiddleware, -255)
+	srv.UseWithSorting(srvMiddleware, 4)
+
+	assert.NotNil(t, srv.middlewares)
+	assert.Len(t, srv.middlewares, 3)
+
+	srv.RunTLS(":1000000000", "cert.pem", "key.pem", ReadHeaderTimeout(1*time.Second), IdleTimeout(1*time.Second), WriteTimeout(1*time.Second))
 
 	assert.Nil(t, srv.middlewares)
 }
@@ -420,6 +441,50 @@ func TestShutdown(t *testing.T) {
 	wg.Wait()
 }
 
+func TestShutdownTLS(t *testing.T) {
+	createCertificate()
+
+	var wg sync.WaitGroup
+	wg.Add(1)
+
+	srv := New()
+
+	mu := &sync.Mutex{}
+	ok := false
+	fail := false
+
+	go func() {
+		srv.RunTLS(":8765", "../test/cert.pem", "../test/key.pem")
+		mu.Lock()
+		ok = true
+
+		if !fail {
+			wg.Done()
+		}
+		mu.Unlock()
+	}()
+
+	go func() {
+		<-time.After(1 * time.Second)
+		mu.Lock()
+		if ok {
+			mu.Unlock()
+			return
+		}
+
+		t.Error("Server did not shutdown after 1s")
+		fail = true
+		wg.Done()
+		mu.Unlock()
+	}()
+
+	<-time.After(100 * time.Millisecond)
+
+	srv.quit <- os.Interrupt
+
+	wg.Wait()
+}
+
 //----------------------------------------------------------------------------------------------------------------------
 func srvMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -493,4 +558,48 @@ func assertFuncEquals(t *testing.T, expected interface{}, actual interface{}) {
 		_, file, line, _ := runtime.Caller(1)
 		t.Error("Not equal functions. " + fmt.Sprintf("%s:%d", file, line))
 	}
+}
+
+func createCertificate() {
+	err := os.RemoveAll("../test")
+	if err != nil {
+		log.Fatalf("Failed to remove test directory. %s", err)
+	}
+
+	err = os.Mkdir("../test", 0777)
+	if err != nil {
+		log.Fatalf("Failed to create test directory. %s", err)
+	}
+
+	priv, err := rsa.GenerateKey(rand.Reader, 1024)
+
+	template := x509.Certificate{
+		SerialNumber: big.NewInt(123456),
+		Subject: pkix.Name{
+			Organization: []string{"FabysCore-GO"},
+		},
+		KeyUsage:              x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
+		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
+		BasicConstraintsValid: true,
+		DNSNames:              []string{"localhost"},
+	}
+
+	certBytes, err := x509.CreateCertificate(rand.Reader, &template, &template, &priv.PublicKey, priv)
+	if err != nil {
+		log.Fatalf("Failed to create certificate. %s", err)
+	}
+
+	certOut, err := os.Create("../test/cert.pem")
+	if err != nil {
+		log.Fatalf("Failed to open cert.pem for writing: %s", err)
+	}
+	pem.Encode(certOut, &pem.Block{Type: "CERTIFICATE", Bytes: certBytes})
+	certOut.Close()
+
+	keyOut, err := os.OpenFile("../test/key.pem", os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
+	if err != nil {
+		log.Fatalf("Failed to open key.pem for writing: %s", err)
+	}
+	pem.Encode(keyOut, &pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(priv)})
+	keyOut.Close()
 }

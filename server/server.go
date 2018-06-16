@@ -38,42 +38,13 @@ func New() *Server {
 // Run starts a http.Server for the application with the given addr.
 // This method blocks the calling goroutine.
 func (s *Server) Run(addr string, options ...Option) {
-	// unset middlewares, they are only used during setup to create the final handler functions
-	s.middlewares = nil
+	s.run(addr, options, "", "")
+}
 
-	// create http.Server
-	srv := &http.Server{
-		ReadHeaderTimeout: 5 * time.Second,
-		IdleTimeout:       120 * time.Second,
-	}
-
-	for _, option := range options {
-		option(srv)
-	}
-
-	srv.Addr = addr
-	srv.Handler = s
-
-	// graceful shutdown
-	done := make(chan bool)
-	go func() {
-		<-s.quit
-
-		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-		defer cancel()
-
-		srv.SetKeepAlivesEnabled(false)
-		srv.Shutdown(ctx)
-
-		close(done)
-	}()
-
-	if err := srv.ListenAndServe(); err != http.ErrServerClosed {
-		log.Printf("ListenAndServe failed: %v\n", err)
-		close(done)
-	}
-
-	<-done
+// RunTLS starts a https http.Server for the application with the given addr and certificate files.
+// This method blocks the calling goroutine.
+func (s *Server) RunTLS(addr, certFile, keyFile string, options ...Option) {
+	s.run(addr, options, certFile, keyFile)
 }
 
 // See http.Handler interface's ServeHTTP.
@@ -189,6 +160,53 @@ func (s *Server) UseWithSorting(fn MiddlewareFunc, sorting int) {
 	})
 
 	sort.Sort(s.middlewares)
+}
+
+// run starts and creates the http.Server and does the graceful shutdown.
+func (s *Server) run(addr string, options []Option, certFile, keyFile string) {
+	// unset middlewares, they are only used during setup to create the final handler functions
+	s.middlewares = nil
+
+	// create http.Server
+	srv := &http.Server{
+		ReadHeaderTimeout: 5 * time.Second,
+		IdleTimeout:       120 * time.Second,
+	}
+
+	for _, option := range options {
+		option(srv)
+	}
+
+	srv.Addr = addr
+	srv.Handler = s
+
+	// graceful shutdown
+	done := make(chan bool)
+	go func() {
+		<-s.quit
+
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+
+		srv.SetKeepAlivesEnabled(false)
+		srv.Shutdown(ctx)
+
+		close(done)
+	}()
+
+	var err error
+	if certFile != "" && keyFile != "" {
+		err = srv.ListenAndServeTLS(certFile, keyFile)
+	} else {
+		err = srv.ListenAndServe()
+	}
+
+	if err != http.ErrServerClosed {
+		log.Printf("ListenAndServe failed: %v\n", err)
+		close(done)
+	}
+
+	<-done
 }
 
 // addRoute adds a route to the router with the middleware aware handler.
