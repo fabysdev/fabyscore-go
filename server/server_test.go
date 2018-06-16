@@ -572,6 +572,9 @@ func createCertificate() {
 	}
 
 	priv, err := rsa.GenerateKey(rand.Reader, 1024)
+	if err != nil {
+		log.Fatalf("Failed to generate key. %s", err)
+	}
 
 	template := x509.Certificate{
 		SerialNumber: big.NewInt(123456),
