@@ -9,7 +9,6 @@ import (
 type Cache struct {
 	mu    sync.RWMutex
 	items map[string]interface{}
-	inc   uint8
 }
 
 // New returns a new Cache intance.
@@ -17,7 +16,6 @@ func New() *Cache {
 	return &Cache{
 		mu:    sync.RWMutex{},
 		items: make(map[string]interface{}),
-		inc:   0,
 	}
 }
 
@@ -41,11 +39,6 @@ func (c *Cache) Set(key string, value interface{}, options ...ItemOption) {
 	}
 
 	c.items[key] = value
-
-	c.inc++
-	if c.inc == 0 {
-		c.inc = 1
-	}
 
 	c.mu.Unlock()
 }
@@ -79,11 +72,6 @@ func (c *Cache) Delete(key string) {
 
 	delete(c.items, key)
 
-	c.inc++
-	if c.inc == 0 {
-		c.inc = 1
-	}
-
 	c.mu.Unlock()
 }
 
@@ -92,11 +80,6 @@ func (c *Cache) Clear() {
 	c.mu.Lock()
 
 	c.items = map[string]interface{}{}
-
-	c.inc++
-	if c.inc == 0 {
-		c.inc = 1
-	}
 
 	c.mu.Unlock()
 }
@@ -124,18 +107,9 @@ func (c *Cache) DeleteExpired() {
 
 	c.mu.Lock()
 
-	inc := false
 	for key, item := range c.items {
 		if itm, ok := item.(ExpiryItem); ok && now > itm.Expiration {
 			delete(c.items, key)
-			inc = true
-		}
-	}
-
-	if inc {
-		c.inc++
-		if c.inc == 0 {
-			c.inc = 1
 		}
 	}
 

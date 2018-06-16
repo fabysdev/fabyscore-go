@@ -1,7 +1,6 @@
 package cache
 
 import (
-	"math"
 	"testing"
 	"time"
 
@@ -128,58 +127,6 @@ func TestDeleteExpired(t *testing.T) {
 
 	c.DeleteExpired()
 	assert.Len(t, c.Keys(), 2)
-}
-
-func TestInc(t *testing.T) {
-	c := New()
-
-	c.Set("test", "value")
-	assert.Equal(t, uint8(1), c.inc)
-
-	c.Set("a", "valueA")
-	assert.Equal(t, uint8(2), c.inc)
-
-	c.Delete("test")
-	assert.Equal(t, uint8(3), c.inc)
-
-	c.Clear()
-	assert.Equal(t, uint8(4), c.inc)
-
-	c.Set("test", "value", Expire(10*time.Millisecond))
-	assert.Equal(t, uint8(5), c.inc)
-
-	time.Sleep(50 * time.Millisecond)
-
-	c.DeleteExpired()
-	assert.Equal(t, uint8(6), c.inc)
-}
-
-func TestIncNotZero(t *testing.T) {
-	c := New()
-
-	c.inc = math.MaxUint8
-	c.Set("test", "value")
-	assert.Equal(t, uint8(1), c.inc)
-
-	c.Set("a", "valueA")
-	assert.Equal(t, uint8(2), c.inc)
-
-	c.inc = math.MaxUint8
-	c.Delete("test")
-	assert.Equal(t, uint8(1), c.inc)
-
-	c.inc = math.MaxUint8
-	c.Clear()
-	assert.Equal(t, uint8(1), c.inc)
-
-	c.Set("test", "value", Expire(10*time.Millisecond))
-	assert.Equal(t, uint8(2), c.inc)
-
-	time.Sleep(50 * time.Millisecond)
-
-	c.inc = math.MaxUint8
-	c.DeleteExpired()
-	assert.Equal(t, uint8(1), c.inc)
 }
 
 func TestNewWithCleanup(t *testing.T) {
