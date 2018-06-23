@@ -1,6 +1,7 @@
 package server
 
 import (
+	"crypto/tls"
 	"net/http"
 	"time"
 )
@@ -26,5 +27,12 @@ func IdleTimeout(d time.Duration) Option {
 func WriteTimeout(d time.Duration) Option {
 	return func(srv *http.Server) {
 		srv.WriteTimeout = d
+	}
+}
+
+// TLSConfig returns an Option for setting the `http.Server`.`TLSConfig`
+func TLSConfig(c *tls.Config) Option {
+	return func(srv *http.Server) {
+		srv.TLSConfig = c
 	}
 }

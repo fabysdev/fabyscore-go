@@ -126,6 +126,10 @@ Option for setting the `http.Server`.`IdleTimeout`
 
 Option for setting the `http.Server`.`WriteTimeout`
 
+#### TLSConfig
+
+Option for setting the `http.Server`.`TLSConfig`
+
 ### ContextKey
 
 Is used to create unique context keys.

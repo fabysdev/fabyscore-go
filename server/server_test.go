@@ -3,6 +3,7 @@ package server
 import (
 	"crypto/rand"
 	"crypto/rsa"
+	"crypto/tls"
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
@@ -63,6 +64,10 @@ func TestRun(t *testing.T) {
 }
 
 func TestRunTLS(t *testing.T) {
+	tlsConfig := &tls.Config{
+		InsecureSkipVerify: true,
+	}
+
 	srv := New()
 	srv.Use(srvMiddleware)
 	srv.UseWithSorting(srvMiddleware, -255)
@@ -71,7 +76,7 @@ func TestRunTLS(t *testing.T) {
 	assert.NotNil(t, srv.middlewares)
 	assert.Len(t, srv.middlewares, 3)
 
-	srv.RunTLS(":1000000000", "cert.pem", "key.pem", ReadHeaderTimeout(1*time.Second), IdleTimeout(1*time.Second), WriteTimeout(1*time.Second))
+	srv.RunTLS(":1000000000", "cert.pem", "key.pem", ReadHeaderTimeout(1*time.Second), IdleTimeout(1*time.Second), WriteTimeout(1*time.Second), TLSConfig(tlsConfig))
 
 	assert.Nil(t, srv.middlewares)
 }
