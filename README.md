@@ -8,14 +8,6 @@
 The API is not yet stable! Some things will change.  
 Please wait for a 1.0 release if you're not willing to update your code frequently.
 
-## Usage
-
-```
-dep ensure -add github.com/fabysdev/fabyscore-go
-
-go get github.com/fabysdev/fabyscore-go
-```
-
 ## Components
 
 ### Server
