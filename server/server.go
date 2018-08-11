@@ -2,7 +2,6 @@ package server
 
 import (
 	"context"
-	"log"
 	"net/http"
 	"os"
 	"os/signal"
@@ -37,14 +36,14 @@ func New() *Server {
 
 // Run starts a http.Server for the application with the given addr.
 // This method blocks the calling goroutine.
-func (s *Server) Run(addr string, options ...Option) {
-	s.run(addr, options, "", "")
+func (s *Server) Run(addr string, options ...Option) error {
+	return s.run(addr, options, "", "")
 }
 
 // RunTLS starts a https http.Server for the application with the given addr and certificate files.
 // This method blocks the calling goroutine.
-func (s *Server) RunTLS(addr, certFile, keyFile string, options ...Option) {
-	s.run(addr, options, certFile, keyFile)
+func (s *Server) RunTLS(addr, certFile, keyFile string, options ...Option) error {
+	return s.run(addr, options, certFile, keyFile)
 }
 
 // See http.Handler interface's ServeHTTP.
@@ -163,7 +162,7 @@ func (s *Server) UseWithSorting(fn MiddlewareFunc, sorting int) {
 }
 
 // run starts and creates the http.Server and does the graceful shutdown.
-func (s *Server) run(addr string, options []Option, certFile, keyFile string) {
+func (s *Server) run(addr string, options []Option, certFile, keyFile string) error {
 	// unset middlewares, they are only used during setup to create the final handler functions
 	s.middlewares = nil
 
@@ -202,11 +201,12 @@ func (s *Server) run(addr string, options []Option, certFile, keyFile string) {
 	}
 
 	if err != http.ErrServerClosed {
-		log.Printf("ListenAndServe failed: %v\n", err)
 		close(done)
+		return err
 	}
 
 	<-done
+	return nil
 }
 
 // addRoute adds a route to the router with the middleware aware handler.
