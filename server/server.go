@@ -161,6 +161,23 @@ func (s *Server) UseWithSorting(fn MiddlewareFunc, sorting int) {
 	sort.Sort(s.middlewares)
 }
 
+// ServeFiles serves the files from the given root at the given path.
+// The given path is converted into a match-all path (e.g. /static/ => /static/*file)
+// The default http.NotFound is used for 404s.
+// Will not serve the directory, only files.
+func (s *Server) ServeFiles(path string, root http.FileSystem) {
+	fileServer := http.FileServer(FileSystem{root})
+
+	s.GET(strings.TrimSuffix(path, "/")+"/*file", func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+		file := ctx.Value("file")
+
+		r.URL.Path = file.(string)
+
+		fileServer.ServeHTTP(w, r)
+	})
+}
+
 // run starts and creates the http.Server and does the graceful shutdown.
 func (s *Server) run(addr string, options []Option, certFile, keyFile string) error {
 	// unset middlewares, they are only used during setup to create the final handler functions
