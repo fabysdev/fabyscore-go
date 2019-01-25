@@ -1,6 +1,7 @@
 # FabysCore GO
 
 [![Build Status](https://travis-ci.org/fabysdev/fabyscore-go.svg?branch=master)](https://travis-ci.org/fabysdev/fabyscore-go)
+[![Coverage Status](https://coveralls.io/repos/github/fabysdev/fabyscore-go/badge.svg?branch=master)](https://coveralls.io/github/fabysdev/fabyscore-go?branch=master)
 [![Go Report Card](https://goreportcard.com/badge/github.com/fabysdev/fabyscore-go)](https://goreportcard.com/report/github.com/fabysdev/fabyscore-go)
 
 ## Warning
