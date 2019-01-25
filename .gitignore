@@ -1,5 +1,6 @@
 vendor/
 test/
+debug.test
 coverage.out
 coverage.html
 develop.ps1

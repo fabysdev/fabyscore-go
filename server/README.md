@@ -66,6 +66,14 @@ func fabyscoreNotFoundHandler(w http.ResponseWriter, r *http.Request) {
 srv.SetNotFoundHandler(fabyscoreNotFoundHandler)
 ```
 
+#### File Server
+
+Only serves files and not the directory.
+
+```go
+srv.ServeFiles("/", http.Dir("./"))
+```
+
 ### Middlewares
 
 Middlewares are standard `net/http` middleware handlers.

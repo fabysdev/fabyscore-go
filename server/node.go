@@ -9,10 +9,11 @@ import (
 
 // node is a tree node for a specific path part.
 type node struct {
-	path      string
-	children  []*node
-	isDynamic bool
-	fn        http.Handler
+	path       string
+	children   []*node
+	isDynamic  bool
+	isMatchAll bool
+	fn         http.Handler
 }
 
 // add adds a new node with a given path.
@@ -38,11 +39,22 @@ func (n *node) add(path string, fn http.Handler) {
 				path: part,
 			}
 
+			// dynamic node
 			if len(part) > 0 && part[0] == ':' {
 				resolvedNode.isDynamic = true
 			}
 
+			// match all node
+			if len(part) > 0 && part[0] == '*' {
+				resolvedNode.isMatchAll = true
+			}
+
 			n.children = append(n.children, resolvedNode)
+		}
+
+		// break if current node is a match-all
+		if resolvedNode.isMatchAll {
+			break
 		}
 
 		n = resolvedNode
@@ -64,15 +76,30 @@ func (n *node) resolve(req *http.Request) (*node, *http.Request) {
 	startIndex := 1
 	var ctx context.Context
 	for i := 1; i < pathLen; i++ {
+		// skip until next /
 		if path[i] != '/' {
 			continue
 		}
 
+		// load the next node with the current path part
 		n = n.load(path[startIndex:i])
 		if n == nil {
 			return nil, nil
 		}
 
+		// if the node is a match-all, add the remaining path as context value and return the node
+		if n.isMatchAll {
+			if ctx == nil {
+				ctx = req.Context()
+			}
+
+			ctx = context.WithValue(ctx, dynamicContextKey(n.path[1:]), path[startIndex:])
+			req = req.WithContext(ctx)
+
+			return n, req
+		}
+
+		// add the part as context value if the node is dynamic
 		if n.isDynamic {
 			if ctx == nil {
 				ctx = req.Context()
@@ -84,13 +111,14 @@ func (n *node) resolve(req *http.Request) (*node, *http.Request) {
 		startIndex = i + 1
 	}
 
+	// if the path does not end with an / startIndex won't be at the end of the path (because the loop skips to /)
 	if startIndex != pathLen {
 		n = n.load(path[startIndex:])
 		if n == nil {
 			return nil, nil
 		}
 
-		if n.isDynamic {
+		if n.isDynamic || n.isMatchAll {
 			if ctx == nil {
 				ctx = req.Context()
 			}
@@ -109,7 +137,7 @@ func (n *node) resolve(req *http.Request) (*node, *http.Request) {
 // load returns the child node matching the given path, nil if no matching node was found.
 func (n *node) load(path string) *node {
 	for _, node := range n.children {
-		if node.path == path || node.isDynamic {
+		if node.path == path || node.isDynamic || node.isMatchAll {
 			return node
 		}
 	}

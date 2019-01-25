@@ -54,6 +54,18 @@ func TestAddRouteDynamic(t *testing.T) {
 	assert.Equal(t, 2, countDynamicNodes(router.trees.getRoot("GET")))
 }
 
+func TestAddRouteMatchAll(t *testing.T) {
+	router := newRouter()
+
+	router.addRoute("GET", "/route/*path", http.HandlerFunc(matchallHandler))
+	assert.Equal(t, "GET:\n/\n  route\n    *path\n\n\n", router.dumpTree())
+	assert.Equal(t, 1, countMatchAllNodes(router.trees.getRoot("GET")))
+
+	router.addRoute("GET", "/route/*path/test/*param/name/", http.HandlerFunc(matchallHandler))
+	assert.Equal(t, "GET:\n/\n  route\n    *path\n\n\n", router.dumpTree())
+	assert.Equal(t, 1, countMatchAllNodes(router.trees.getRoot("GET")))
+}
+
 func TestResolveTreeNotFound(t *testing.T) {
 	router := newRouter()
 	req, _ := http.NewRequest("GET", "/", nil)
@@ -101,53 +113,173 @@ func TestResolve(t *testing.T) {
 	router.addRoute("POST", "/route/:name/test/:param/name/", routeMiddleware(routeMiddleware(http.HandlerFunc(dynamicHandler))))
 
 	req, _ := http.NewRequest("GET", "/testroute", nil)
-	w := httptest.NewRecorder()
 	node, _ := router.resolve(req)
 	assert.NotNil(t, node)
 	assert.NotNil(t, node.fn)
 	assertFuncEquals(t, simpleHandler, node.fn)
 
 	req, _ = http.NewRequest("GET", "/", nil)
-	w = httptest.NewRecorder()
 	node, _ = router.resolve(req)
 	assert.NotNil(t, node)
 	assert.NotNil(t, node.fn)
 	assertFuncEquals(t, simpleHandler, node.fn)
 
 	req, _ = http.NewRequest("GET", "/route/test/name", nil)
-	w = httptest.NewRecorder()
 	node, _ = router.resolve(req)
 	assert.NotNil(t, node)
 	assert.NotNil(t, node.fn)
 	assertFuncEquals(t, routeMiddleware(http.HandlerFunc(simpleHandler)), node.fn)
 
 	req, _ = http.NewRequest("POST", "/route", nil)
-	w = httptest.NewRecorder()
 	node, _ = router.resolve(req)
 	assert.NotNil(t, node)
 	assert.NotNil(t, node.fn)
 	assertFuncEquals(t, simpleHandler, node.fn)
 
 	req, _ = http.NewRequest("POST", "/route/core/test/attr/name/", nil)
-	w = httptest.NewRecorder()
 	node, req = router.resolve(req)
 	assert.NotNil(t, node)
 	assert.NotNil(t, node.fn)
 	assertFuncEquals(t, routeMiddleware(http.HandlerFunc(dynamicHandler)), node.fn)
 
+	w := httptest.NewRecorder()
 	node.fn.ServeHTTP(w, req)
 	assert.Equal(t, "route-startroute-startdynamic core attrroute-endroute-end", w.Body.String())
 
 	req, _ = http.NewRequest("POST", "/route/core", nil)
-	w = httptest.NewRecorder()
 	node, req = router.resolve(req)
 	assert.NotNil(t, node)
 	assert.NotNil(t, node.fn)
 	assertFuncEquals(t, dynamicHandler, node.fn)
 
+	w = httptest.NewRecorder()
 	node.fn.ServeHTTP(w, req)
 	assert.Equal(t, "dynamic core ", w.Body.String())
+}
 
+func TestResolveMatchAll(t *testing.T) {
+	router := newRouter()
+	router.addRoute("GET", "/route/*path", http.HandlerFunc(matchallHandler))
+
+	req, _ := http.NewRequest("GET", "/route/core", nil)
+	node, req := router.resolve(req)
+	assert.NotNil(t, node)
+	assert.NotNil(t, node.fn)
+	assertFuncEquals(t, matchallHandler, node.fn)
+
+	w := httptest.NewRecorder()
+	node.fn.ServeHTTP(w, req)
+	assert.Equal(t, "match-all core", w.Body.String())
+
+	req, _ = http.NewRequest("GET", "/route/core/", nil)
+	node, req = router.resolve(req)
+	assert.NotNil(t, node)
+	assert.NotNil(t, node.fn)
+	assertFuncEquals(t, matchallHandler, node.fn)
+
+	w = httptest.NewRecorder()
+	node.fn.ServeHTTP(w, req)
+	assert.Equal(t, "match-all core/", w.Body.String())
+
+	req, _ = http.NewRequest("GET", "/route/core/test/attr", nil)
+	node, req = router.resolve(req)
+	assert.NotNil(t, node)
+	assert.NotNil(t, node.fn)
+	assertFuncEquals(t, matchallHandler, node.fn)
+
+	w = httptest.NewRecorder()
+	node.fn.ServeHTTP(w, req)
+	assert.Equal(t, "match-all core/test/attr", w.Body.String())
+
+	req, _ = http.NewRequest("GET", "/route/core/test/attr/name/", nil)
+	node, req = router.resolve(req)
+	assert.NotNil(t, node)
+	assert.NotNil(t, node.fn)
+	assertFuncEquals(t, matchallHandler, node.fn)
+
+	w = httptest.NewRecorder()
+	node.fn.ServeHTTP(w, req)
+	assert.Equal(t, "match-all core/test/attr/name/", w.Body.String())
+
+	req, _ = http.NewRequest("GET", "/route/core/test/attr/name/file.txt", nil)
+	node, req = router.resolve(req)
+	assert.NotNil(t, node)
+	assert.NotNil(t, node.fn)
+	assertFuncEquals(t, matchallHandler, node.fn)
+
+	w = httptest.NewRecorder()
+	node.fn.ServeHTTP(w, req)
+	assert.Equal(t, "match-all core/test/attr/name/file.txt", w.Body.String())
+}
+
+func TestResolveMatchAllNoEndingSlash(t *testing.T) {
+	router := newRouter()
+	router.addRoute("GET", "/route/*path", http.HandlerFunc(matchallHandler))
+
+	req, _ := http.NewRequest("GET", "/route/core", nil)
+	node, req := router.resolve(req)
+	assert.NotNil(t, node)
+	assert.NotNil(t, node.fn)
+	assertFuncEquals(t, matchallHandler, node.fn)
+
+	w := httptest.NewRecorder()
+	node.fn.ServeHTTP(w, req)
+	assert.Equal(t, "match-all core", w.Body.String())
+
+	req, _ = http.NewRequest("GET", "/route/core/", nil)
+	node, req = router.resolve(req)
+	assert.NotNil(t, node)
+	assert.NotNil(t, node.fn)
+	assertFuncEquals(t, matchallHandler, node.fn)
+
+	w = httptest.NewRecorder()
+	node.fn.ServeHTTP(w, req)
+	assert.Equal(t, "match-all core/", w.Body.String())
+
+	req, _ = http.NewRequest("GET", "/route/core/test/attr", nil)
+	node, req = router.resolve(req)
+	assert.NotNil(t, node)
+	assert.NotNil(t, node.fn)
+	assertFuncEquals(t, matchallHandler, node.fn)
+
+	w = httptest.NewRecorder()
+	node.fn.ServeHTTP(w, req)
+	assert.Equal(t, "match-all core/test/attr", w.Body.String())
+
+	req, _ = http.NewRequest("GET", "/route/core/test/attr/name/", nil)
+	node, req = router.resolve(req)
+	assert.NotNil(t, node)
+	assert.NotNil(t, node.fn)
+	assertFuncEquals(t, matchallHandler, node.fn)
+
+	w = httptest.NewRecorder()
+	node.fn.ServeHTTP(w, req)
+	assert.Equal(t, "match-all core/test/attr/name/", w.Body.String())
+
+	req, _ = http.NewRequest("GET", "/route/core/test/attr/name/file.txt", nil)
+	node, req = router.resolve(req)
+	assert.NotNil(t, node)
+	assert.NotNil(t, node.fn)
+	assertFuncEquals(t, matchallHandler, node.fn)
+
+	w = httptest.NewRecorder()
+	node.fn.ServeHTTP(w, req)
+	assert.Equal(t, "match-all core/test/attr/name/file.txt", w.Body.String())
+}
+
+func TestResolveMatchAllIndex(t *testing.T) {
+	router := newRouter()
+	router.addRoute("GET", "/*path", http.HandlerFunc(matchallHandler))
+
+	req, _ := http.NewRequest("GET", "/route/core", nil)
+	node, req := router.resolve(req)
+	assert.NotNil(t, node)
+	assert.NotNil(t, node.fn)
+	assertFuncEquals(t, matchallHandler, node.fn)
+
+	w := httptest.NewRecorder()
+	node.fn.ServeHTTP(w, req)
+	assert.Equal(t, "match-all route/core", w.Body.String())
 }
 
 func BenchmarkResolve(b *testing.B) {
@@ -183,6 +315,19 @@ func countDynamicNodes(n *node) int {
 	return count
 }
 
+func countMatchAllNodes(n *node) int {
+	count := 0
+	if n.isMatchAll {
+		count++
+	}
+
+	for _, c := range n.children {
+		count += countMatchAllNodes(c)
+	}
+
+	return count
+}
+
 //----------------------------------------------------------------------------------------------------------------------
 func simpleHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprint(w, "simple")
@@ -204,6 +349,18 @@ func dynamicHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	fmt.Fprint(w, "dynamic "+nameStr+" "+paramStr)
+}
+
+func matchallHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	path := ctx.Value("path")
+	pathStr := ""
+	if path != nil {
+		pathStr = path.(string)
+	}
+
+	fmt.Fprint(w, "match-all "+pathStr)
 }
 
 func routeMiddleware(next http.Handler) http.Handler {

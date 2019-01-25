@@ -35,6 +35,14 @@ func fabyscoreHandler(w http.ResponseWriter, r *http.Request) {
 }
 ```
 
+#### File Server
+
+Only serves files and not the directory.
+
+```go
+srv.ServeFiles("/", http.Dir("./"))
+```
+
 ### Middleware
 
 `net/http` middleware handlers.
