@@ -404,6 +404,38 @@ func TestServer(t *testing.T) {
 	assert.Equal(t, "b123asdfcontr", w.Body.String())
 }
 
+func TestFileServer(t *testing.T) {
+	srv := New()
+
+	srv.ServeFiles("/", http.Dir("./"))
+
+	req, _ := http.NewRequest("GET", "/", nil)
+	w := httptest.NewRecorder()
+	srv.ServeHTTP(w, req)
+	assert.Contains(t, w.Body.String(), "404")
+
+	req, _ = http.NewRequest("GET", "/README.md", nil)
+	w = httptest.NewRecorder()
+	srv.ServeHTTP(w, req)
+	assert.Contains(t, w.Body.String(), "# FabysCore GO - Server")
+
+	req, _ = http.NewRequest("GET", "/notfound.txt", nil)
+	w = httptest.NewRecorder()
+	srv.ServeHTTP(w, req)
+	assert.Contains(t, w.Body.String(), "404")
+}
+
+func TestFileServerStatError(t *testing.T) {
+	srv := New()
+
+	srv.ServeFiles("/", mockedFS{})
+
+	req, _ := http.NewRequest("GET", "/", nil)
+	w := httptest.NewRecorder()
+	srv.ServeHTTP(w, req)
+	assert.Contains(t, w.Body.String(), "404")
+}
+
 func TestShutdown(t *testing.T) {
 	var wg sync.WaitGroup
 	wg.Add(1)
@@ -610,4 +642,21 @@ func createCertificate() {
 	}
 	pem.Encode(keyOut, &pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(priv)})
 	keyOut.Close()
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+type mockedFile struct {
+	http.File
+}
+
+func (m mockedFile) Stat() (os.FileInfo, error) {
+	return nil, os.ErrNotExist
+}
+
+type mockedFS struct {
+	http.FileSystem
+}
+
+func (m mockedFS) Open(path string) (http.File, error) {
+	return mockedFile{}, nil
 }

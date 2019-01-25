@@ -171,6 +171,9 @@ func (s *Server) ServeFiles(path string, root http.FileSystem) {
 	s.GET(strings.TrimSuffix(path, "/")+"/*file", func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		file := ctx.Value("file")
+		if file == nil {
+			file = "/"
+		}
 
 		r.URL.Path = file.(string)
 
