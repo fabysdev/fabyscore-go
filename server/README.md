@@ -56,6 +56,47 @@ srv.Group("/test", func(g *Group) {
 })
 ```
 
+### Dynamic Routes
+
+```go
+// Matches /route/fabys but not /route/fabys/test
+srv.GET("/route/:name", fabyscoreDynamicHandler)
+
+func fabyscoreDynamicHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	name := ctx.Value("name")
+	if name == nil {
+		name = ""
+  }
+
+  // GET /route/fabys => name = fabys
+
+	fmt.Fprint(w, "dynamic "+name.(string))
+}
+```
+
+### Match-All Routes
+
+```go
+// Matches /route/fabys and /route/fabys/test
+srv.GET("/route/*name", fabyscoreMatchAllHandler)
+
+func fabyscoreMatchAllHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	name := ctx.Value("name")
+	if name == nil {
+		name = ""
+  }
+
+   // GET /route/fabys => name = fabys
+   // GET /route/fabys/test => name = fabys/test
+
+	fmt.Fprint(w, "match-all "+name.(string))
+}
+```
+
 #### Not Found Handler
 
 ```go
