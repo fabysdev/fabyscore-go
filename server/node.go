@@ -68,10 +68,16 @@ func (n *node) resolve(req *http.Request) (*node, *http.Request) {
 			continue
 		}
 
-		n = n.load(path[startIndex:i])
-		if n == nil {
+		newN := n.load(path[startIndex:i])
+		if newN == nil {
+			if n.isDynamic {
+				return n, req
+			}
+
 			return nil, nil
 		}
+
+		n = newN
 
 		if n.isDynamic {
 			if ctx == nil {
@@ -85,10 +91,16 @@ func (n *node) resolve(req *http.Request) (*node, *http.Request) {
 	}
 
 	if startIndex != pathLen {
-		n = n.load(path[startIndex:])
-		if n == nil {
+		newN := n.load(path[startIndex:])
+		if newN == nil {
+			if n.isDynamic {
+				return n, req
+			}
+
 			return nil, nil
 		}
+
+		n = newN
 
 		if n.isDynamic {
 			if ctx == nil {
