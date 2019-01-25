@@ -54,6 +54,32 @@ func TestAddRouteDynamic(t *testing.T) {
 	assert.Equal(t, 2, countDynamicNodes(router.trees.getRoot("GET")))
 }
 
+func TestRouteDynamic(t *testing.T) {
+	router := newRouter()
+
+	router.addRoute("GET", "/route/:name/:param", http.HandlerFunc(dynamicHandler))
+
+	req, _ := http.NewRequest("GET", "/route/name/param", nil)
+
+	node, req := router.resolve(req)
+	assert.NotNil(t, node)
+	assert.NotNil(t, req)
+
+	w := httptest.NewRecorder()
+	node.fn.ServeHTTP(w, req)
+	assert.Equal(t, "dynamic name param", w.Body.String())
+
+	req, _ = http.NewRequest("GET", "/route/name/param/additional", nil)
+
+	node, req = router.resolve(req)
+	assert.NotNil(t, node)
+	assert.NotNil(t, req)
+
+	w = httptest.NewRecorder()
+	node.fn.ServeHTTP(w, req)
+	assert.Equal(t, "dynamic name param/additional", w.Body.String())
+}
+
 func TestResolveTreeNotFound(t *testing.T) {
 	router := newRouter()
 	req, _ := http.NewRequest("GET", "/", nil)
