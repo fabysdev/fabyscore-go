@@ -67,6 +67,10 @@ func (n *node) add(path string, fn http.Handler) {
 // Returns nil, nil if no node was found for the request.
 func (n *node) resolve(req *http.Request) (*node, *http.Request) {
 	if req.URL.Path == "/" {
+		if n.fn == nil && len(n.children) == 1 && (n.children[0].isDynamic || n.children[0].isMatchAll) {
+			return n.children[0], req
+		}
+
 		return n, req
 	}
 
@@ -129,6 +133,10 @@ func (n *node) resolve(req *http.Request) (*node, *http.Request) {
 
 	if ctx != nil {
 		req = req.WithContext(ctx)
+	}
+
+	if n.fn == nil && len(n.children) == 1 && (n.children[0].isDynamic || n.children[0].isMatchAll) {
+		return n.children[0], req
 	}
 
 	return n, req
