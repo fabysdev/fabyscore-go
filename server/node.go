@@ -71,6 +71,15 @@ func (n *node) resolve(req *http.Request) (*node, *http.Request) {
 		newN := n.load(path[startIndex:i])
 		if newN == nil {
 			if n.isDynamic {
+				if ctx == nil {
+					ctx = req.Context()
+				}
+
+				startIndex -= len(n.path[1:]) + 1
+
+				ctx = context.WithValue(ctx, dynamicContextKey(n.path[1:]), path[startIndex:i])
+				req = req.WithContext(ctx)
+
 				return n, req
 			}
 
@@ -94,6 +103,15 @@ func (n *node) resolve(req *http.Request) (*node, *http.Request) {
 		newN := n.load(path[startIndex:])
 		if newN == nil {
 			if n.isDynamic {
+				if ctx == nil {
+					ctx = req.Context()
+				}
+
+				startIndex -= len(n.path[1:]) + 1
+
+				ctx = context.WithValue(ctx, dynamicContextKey(n.path[1:]), path[startIndex:])
+				req = req.WithContext(ctx)
+
 				return n, req
 			}
 
