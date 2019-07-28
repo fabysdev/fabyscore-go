@@ -165,20 +165,8 @@ func (s *Server) UseWithSorting(fn MiddlewareFunc, sorting int) {
 // The given path is converted into a match-all path (e.g. /static/ => /static/*file)
 // The default http.NotFound is used for 404s.
 // Will not serve the directory, only files.
-func (s *Server) ServeFiles(path string, root http.FileSystem) {
-	fileServer := http.FileServer(FileSystem{root})
-
-	s.GET(strings.TrimSuffix(path, "/")+"/*file", func(w http.ResponseWriter, r *http.Request) {
-		ctx := r.Context()
-		file := ctx.Value("file")
-		if file == nil {
-			file = "/"
-		}
-
-		r.URL.Path = file.(string)
-
-		fileServer.ServeHTTP(w, r)
-	})
+func (s *Server) ServeFiles(path string, root http.FileSystem, middlewares ...MiddlewareFunc) {
+	s.GET(strings.TrimSuffix(path, "/")+"/*file", createServeFilesHandler(root), middlewares...)
 }
 
 // run starts and creates the http.Server and does the graceful shutdown.
@@ -249,4 +237,21 @@ func (s *Server) addRoute(method, path string, fn http.Handler, middlewares []Mi
 
 	// add route to router
 	s.router.addRoute(method, path, fn)
+}
+
+// createServeFilesHandler returns the http handler func for serving files.
+func createServeFilesHandler(root http.FileSystem) http.HandlerFunc {
+	fileServer := http.FileServer(FileSystem{root})
+
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+		file := ctx.Value("file")
+		if file == nil {
+			file = "/"
+		}
+
+		r.URL.Path = file.(string)
+
+		fileServer.ServeHTTP(w, r)
+	})
 }

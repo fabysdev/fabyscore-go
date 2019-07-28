@@ -442,6 +442,60 @@ func TestFileServerStatError(t *testing.T) {
 	assert.Contains(t, w.Body.String(), "404")
 }
 
+func TestGroupFileServer(t *testing.T) {
+	srv := New()
+
+	srv.Group("/", func(g *Group) {
+		g.ServeFiles("/static", http.Dir("./"))
+	})
+
+	req, _ := http.NewRequest("GET", "/", nil)
+	w := httptest.NewRecorder()
+	srv.ServeHTTP(w, req)
+	assert.Contains(t, w.Body.String(), "404")
+
+	req, _ = http.NewRequest("GET", "/static", nil)
+	w = httptest.NewRecorder()
+	srv.ServeHTTP(w, req)
+	assert.Contains(t, w.Body.String(), "404")
+
+	req, _ = http.NewRequest("GET", "/static/README.md", nil)
+	w = httptest.NewRecorder()
+	srv.ServeHTTP(w, req)
+	assert.Contains(t, w.Body.String(), "# FabysCore GO - Server")
+
+	req, _ = http.NewRequest("GET", "/static/notfound.txt", nil)
+	w = httptest.NewRecorder()
+	srv.ServeHTTP(w, req)
+	assert.Contains(t, w.Body.String(), "404")
+}
+
+func TestGroupFileServerStatError(t *testing.T) {
+	srv := New()
+
+	srv.Group("/", func(g *Group) {
+		g.ServeFiles("/static", mockedFS{})
+	})
+
+	req, _ := http.NewRequest("GET", "/static/", nil)
+	w := httptest.NewRecorder()
+	srv.ServeHTTP(w, req)
+	assert.Contains(t, w.Body.String(), "404")
+}
+
+func TestFileServerMiddleware(t *testing.T) {
+	srv := New()
+
+	srv.ServeFiles("/", http.Dir("./"), srvRouteMiddleware)
+
+	req, _ := http.NewRequest("GET", "/README.md", nil)
+	w := httptest.NewRecorder()
+	srv.ServeHTTP(w, req)
+	assert.Contains(t, w.Body.String(), "route-start")
+	assert.Contains(t, w.Body.String(), "# FabysCore GO - Server")
+	assert.Contains(t, w.Body.String(), "route-end")
+}
+
 func TestShutdown(t *testing.T) {
 	var wg sync.WaitGroup
 	wg.Add(1)

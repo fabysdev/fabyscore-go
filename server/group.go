@@ -83,6 +83,14 @@ func (g *Group) TRACE(route string, fn http.HandlerFunc, middlewares ...Middlewa
 	g.addRoute("TRACE", route, fn, middlewares)
 }
 
+// ServeFiles serves the files from the given root at the given path.
+// The given path is converted into a match-all path (e.g. /static/ => /static/*file)
+// The default http.NotFound is used for 404s.
+// Will not serve the directory, only files.
+func (g *Group) ServeFiles(path string, root http.FileSystem, middlewares ...MiddlewareFunc) {
+	g.GET(strings.TrimSuffix(path, "/")+"/*file", createServeFilesHandler(root), middlewares...)
+}
+
 // addRoute adds a gorup route to the router with the middleware aware handler.
 func (g *Group) addRoute(method, path string, fn http.Handler, middlewares []MiddlewareFunc) {
 	groupRouteMiddlewares := []MiddlewareFunc{}
