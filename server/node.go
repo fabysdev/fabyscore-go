@@ -44,7 +44,7 @@ func (n *node) add(path string, fn http.Handler) {
 				panic(fmt.Sprintf("Route '%s' can not be added. Match-All route '%s' conflicts with it. Check the route registration order.", path, resolvedNode.resolvePath()))
 			}
 
-			// the route can not be added if a dynamic route with a differnt path part already exists for this part
+			// the route can not be added if a dynamic route with a different path part already exists for this part
 			if resolvedNode.isDynamic && part != resolvedNode.path {
 				panic(fmt.Sprintf("Route '%s' can not be added. Dynamic route '%s' conflicts with it. Check the route registration order.", path, resolvedNode.resolvePath()))
 			}
