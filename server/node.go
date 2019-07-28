@@ -40,7 +40,7 @@ func (n *node) add(path string, fn http.Handler) {
 		// check if the route can be added to tree
 		if resolvedNode != nil {
 			// the route can not be added if a match all route already exists for this part
-			if resolvedNode.isMatchAll && part[0] != '*' {
+			if resolvedNode.isMatchAll && (part == "" || part[0] != '*') {
 				panic(fmt.Sprintf("Route '%s' can not be added. Match-All route '%s' conflicts with it. Check the route registration order.", path, resolvedNode.resolvePath()))
 			}
 
