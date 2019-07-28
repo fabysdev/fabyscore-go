@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"sort"
 	"strings"
 )
 
@@ -11,6 +12,7 @@ import (
 type node struct {
 	path       string
 	children   []*node
+	parent     *node
 	isDynamic  bool
 	isMatchAll bool
 	fn         http.Handler
@@ -34,9 +36,24 @@ func (n *node) add(path string, fn http.Handler) {
 		part := parts[i]
 
 		resolvedNode = n.load(part)
+
+		// check if the route can be added to tree
+		if resolvedNode != nil {
+			// the route can not be added if a match all route already exists for this part
+			if resolvedNode.isMatchAll && part[0] != '*' {
+				panic(fmt.Sprintf("Route '%s' can not be added. Match-All route '%s' conflicts with it. Check the route registration order.", path, resolvedNode.resolvePath()))
+			}
+
+			// the route can not be added if a dynamic route with a differnt path part already exists for this part
+			if resolvedNode.isDynamic && part != resolvedNode.path {
+				panic(fmt.Sprintf("Route '%s' can not be added. Dynamic route '%s' conflicts with it. Check the route registration order.", path, resolvedNode.resolvePath()))
+			}
+		}
+
 		if resolvedNode == nil {
 			resolvedNode = &node{
-				path: part,
+				path:   part,
+				parent: n,
 			}
 
 			// dynamic node
@@ -54,6 +71,10 @@ func (n *node) add(path string, fn http.Handler) {
 
 		// break if current node is a match-all
 		if resolvedNode.isMatchAll {
+			if i != len(parts)-1 {
+				panic(fmt.Sprintf("Route '%s' has ineffective parts. Everything after the Match-All part '%s' is ignored. Remove the ineffective parts from the route.", path, resolvedNode.resolvePath()))
+			}
+
 			break
 		}
 
@@ -67,8 +88,13 @@ func (n *node) add(path string, fn http.Handler) {
 // Returns nil, nil if no node was found for the request.
 func (n *node) resolve(req *http.Request) (*node, *http.Request) {
 	if req.URL.Path == "/" {
-		if n.fn == nil && len(n.children) == 1 && (n.children[0].isDynamic || n.children[0].isMatchAll) {
-			return n.children[0], req
+		if n.fn == nil && len(n.children) != 0 {
+			// check if a dynamic or match all route exists as root child
+			for _, child := range n.children {
+				if child.isDynamic || child.isMatchAll {
+					return child, req
+				}
+			}
 		}
 
 		return n, req
@@ -151,6 +177,24 @@ func (n *node) load(path string) *node {
 	}
 
 	return nil
+}
+
+// resolvePath returns the full path to the node.
+func (n *node) resolvePath() string {
+	path := []string{
+		n.path,
+	}
+
+	for n.parent != nil {
+		n = n.parent
+		if n.path != "/" {
+			path = append(path, n.path)
+		}
+	}
+
+	sort.Sort(sort.Reverse(sort.StringSlice(path)))
+
+	return "/" + strings.Join(path, "/")
 }
 
 // dump returns the node and its children as string.

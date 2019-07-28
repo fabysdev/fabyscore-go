@@ -25,6 +25,7 @@ func TestAddRouteSimpleRoot(t *testing.T) {
 	router := newRouter()
 	router.addRoute("GET", "/", http.HandlerFunc(simpleHandler))
 	router.addRoute("GET", "/testroute", http.HandlerFunc(simpleHandler))
+	router.addRoute("GET", "/testroute", http.HandlerFunc(simpleHandler))
 
 	assert.Equal(t, "GET:\n/\n  testroute\n\n\n", router.dumpTree())
 }
@@ -49,6 +50,10 @@ func TestAddRouteDynamic(t *testing.T) {
 	assert.Equal(t, "GET:\n/\n  route\n    :name\n\n\n", router.dumpTree())
 	assert.Equal(t, 1, countDynamicNodes(router.trees.getRoot("GET")))
 
+	router.addRoute("GET", "/route/:name", http.HandlerFunc(dynamicHandler))
+	assert.Equal(t, "GET:\n/\n  route\n    :name\n\n\n", router.dumpTree())
+	assert.Equal(t, 1, countDynamicNodes(router.trees.getRoot("GET")))
+
 	router.addRoute("GET", "/route/:name/test/:param/name/", http.HandlerFunc(dynamicHandler))
 	assert.Equal(t, "GET:\n/\n  route\n    :name\n      test\n        :param\n          name\n\n\n", router.dumpTree())
 	assert.Equal(t, 2, countDynamicNodes(router.trees.getRoot("GET")))
@@ -61,7 +66,7 @@ func TestAddRouteMatchAll(t *testing.T) {
 	assert.Equal(t, "GET:\n/\n  route\n    *path\n\n\n", router.dumpTree())
 	assert.Equal(t, 1, countMatchAllNodes(router.trees.getRoot("GET")))
 
-	router.addRoute("GET", "/route/*path/test/*param/name/", http.HandlerFunc(matchallHandler))
+	router.addRoute("GET", "/route/*path", http.HandlerFunc(matchallHandler))
 	assert.Equal(t, "GET:\n/\n  route\n    *path\n\n\n", router.dumpTree())
 	assert.Equal(t, 1, countMatchAllNodes(router.trees.getRoot("GET")))
 }
@@ -310,6 +315,128 @@ func TestResolveMatchAllPathIndex(t *testing.T) {
 	w := httptest.NewRecorder()
 	node.fn.ServeHTTP(w, req)
 	assert.Equal(t, "match-all ", w.Body.String())
+}
+
+func TestResolveMatchAllIndexWithMultipleRoutes(t *testing.T) {
+	router := newRouter()
+	router.addRoute("GET", "/test", http.HandlerFunc(simpleHandler))
+	router.addRoute("GET", "/*path", http.HandlerFunc(matchallHandler))
+
+	// match all req
+	req, _ := http.NewRequest("GET", "/", nil)
+	node, req := router.resolve(req)
+	assert.NotNil(t, node)
+	assert.NotNil(t, node.fn)
+	assertFuncEquals(t, matchallHandler, node.fn)
+
+	w := httptest.NewRecorder()
+	node.fn.ServeHTTP(w, req)
+	assert.Equal(t, "match-all ", w.Body.String())
+
+	req, _ = http.NewRequest("GET", "/a", nil)
+	node, req = router.resolve(req)
+	assert.NotNil(t, node)
+	assert.NotNil(t, node.fn)
+	assertFuncEquals(t, matchallHandler, node.fn)
+
+	w = httptest.NewRecorder()
+	node.fn.ServeHTTP(w, req)
+	assert.Equal(t, "match-all a", w.Body.String())
+
+	req, _ = http.NewRequest("GET", "/a/b", nil)
+	node, req = router.resolve(req)
+	assert.NotNil(t, node)
+	assert.NotNil(t, node.fn)
+	assertFuncEquals(t, matchallHandler, node.fn)
+
+	w = httptest.NewRecorder()
+	node.fn.ServeHTTP(w, req)
+	assert.Equal(t, "match-all a/b", w.Body.String())
+
+	// simple req
+	req, _ = http.NewRequest("GET", "/test", nil)
+	node, req = router.resolve(req)
+	assert.NotNil(t, node)
+	assert.NotNil(t, node.fn)
+	assertFuncEquals(t, simpleHandler, node.fn)
+
+	w = httptest.NewRecorder()
+	node.fn.ServeHTTP(w, req)
+	assert.Equal(t, "simple", w.Body.String())
+}
+
+func TestResolveDynamicWithMultipleRoutes(t *testing.T) {
+	router := newRouter()
+	router.addRoute("GET", "/test", http.HandlerFunc(simpleHandler))
+	router.addRoute("GET", "/:name/a", http.HandlerFunc(dynamicHandler))
+	router.addRoute("GET", "/:name/b", http.HandlerFunc(dynamicHandler))
+
+	// dynamic
+	req, _ := http.NewRequest("GET", "/name_a/a", nil)
+	node, req := router.resolve(req)
+	assert.NotNil(t, node)
+	assert.NotNil(t, node.fn)
+	assertFuncEquals(t, dynamicHandler, node.fn)
+
+	w := httptest.NewRecorder()
+	node.fn.ServeHTTP(w, req)
+	assert.Equal(t, "dynamic name_a ", w.Body.String())
+
+	req, _ = http.NewRequest("GET", "/name_b/b", nil)
+	node, req = router.resolve(req)
+	assert.NotNil(t, node)
+	assert.NotNil(t, node.fn)
+	assertFuncEquals(t, dynamicHandler, node.fn)
+
+	w = httptest.NewRecorder()
+	node.fn.ServeHTTP(w, req)
+	assert.Equal(t, "dynamic name_b ", w.Body.String())
+
+	// simple req
+	req, _ = http.NewRequest("GET", "/test", nil)
+	node, req = router.resolve(req)
+	assert.NotNil(t, node)
+	assert.NotNil(t, node.fn)
+	assertFuncEquals(t, simpleHandler, node.fn)
+
+	w = httptest.NewRecorder()
+	node.fn.ServeHTTP(w, req)
+	assert.Equal(t, "simple", w.Body.String())
+}
+
+func TestAddRoutePanicsConflictingMatchAll(t *testing.T) {
+	defer func() {
+		if r := recover(); r == nil {
+			t.Errorf("router.addRoute did not panic for conflicting match-all route")
+		}
+	}()
+
+	router := newRouter()
+	router.addRoute("GET", "/*path", http.HandlerFunc(matchallHandler))
+	router.addRoute("GET", "/test/a", http.HandlerFunc(simpleHandler))
+}
+
+func TestAddRoutePanicsMatchAllIneffectiveParts(t *testing.T) {
+	defer func() {
+		if r := recover(); r == nil {
+			t.Errorf("router.addRoute did not panic for ineffective parts of a match-all route")
+		}
+	}()
+
+	router := newRouter()
+	router.addRoute("GET", "/*path/a", http.HandlerFunc(matchallHandler))
+}
+
+func TestAddRoutePanicsConflictingDynamic(t *testing.T) {
+	defer func() {
+		if r := recover(); r == nil {
+			t.Errorf("router.addRoute did not panic for conflicting dynamic route")
+		}
+	}()
+
+	router := newRouter()
+	router.addRoute("GET", "/:name", http.HandlerFunc(dynamicHandler))
+	router.addRoute("GET", "/test/a", http.HandlerFunc(simpleHandler))
 }
 
 func BenchmarkResolve(b *testing.B) {
