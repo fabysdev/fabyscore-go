@@ -24,9 +24,12 @@ import (
 
 func TestUsePanics(t *testing.T) {
 	defer func() {
-		if r := recover(); r == nil {
+		r := recover()
+		if r == nil {
 			t.Errorf("srv.Use did not panic")
 		}
+
+		assert.Equal(t, "Server middlewares must be defined before the routes", r)
 	}()
 
 	srv := New()
@@ -230,9 +233,12 @@ func TestGroupUse(t *testing.T) {
 
 func TestGroupUsePanics(t *testing.T) {
 	defer func() {
-		if r := recover(); r == nil {
+		r := recover()
+		if r == nil {
 			t.Errorf("group.Use did not panic")
 		}
+
+		assert.Equal(t, "Group middlewares must be defined before the routes", r)
 	}()
 
 	srv := New()
