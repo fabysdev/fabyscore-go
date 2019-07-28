@@ -406,9 +406,12 @@ func TestResolveDynamicWithMultipleRoutes(t *testing.T) {
 
 func TestAddRoutePanicsConflictingMatchAll(t *testing.T) {
 	defer func() {
-		if r := recover(); r == nil {
+		r := recover()
+		if r == nil {
 			t.Errorf("router.addRoute did not panic for conflicting match-all route")
 		}
+
+		assert.Equal(t, "Route '/test/a' can not be added. Match-All route '/*path' conflicts with it. Check the route registration order.", r)
 	}()
 
 	router := newRouter()
@@ -416,11 +419,29 @@ func TestAddRoutePanicsConflictingMatchAll(t *testing.T) {
 	router.addRoute("GET", "/test/a", http.HandlerFunc(simpleHandler))
 }
 
+func TestAddRoutePanicsConflictingMatchAllComplex(t *testing.T) {
+	defer func() {
+		r := recover()
+		if r == nil {
+			t.Errorf("router.addRoute did not panic for conflicting match-all route")
+		}
+
+		assert.Equal(t, "Route '/route/test/a' can not be added. Match-All route '/route/*path' conflicts with it. Check the route registration order.", r)
+	}()
+
+	router := newRouter()
+	router.addRoute("GET", "/route/*path", http.HandlerFunc(matchallHandler))
+	router.addRoute("GET", "/route/test/a", http.HandlerFunc(simpleHandler))
+}
+
 func TestAddRoutePanicsMatchAllIneffectiveParts(t *testing.T) {
 	defer func() {
-		if r := recover(); r == nil {
+		r := recover()
+		if r == nil {
 			t.Errorf("router.addRoute did not panic for ineffective parts of a match-all route")
 		}
+
+		assert.Equal(t, "Route '/*path/a' has ineffective parts. Everything after the Match-All part '/*path' is ignored. Remove the ineffective parts from the route.", r)
 	}()
 
 	router := newRouter()
@@ -429,9 +450,12 @@ func TestAddRoutePanicsMatchAllIneffectiveParts(t *testing.T) {
 
 func TestAddRoutePanicsConflictingDynamic(t *testing.T) {
 	defer func() {
-		if r := recover(); r == nil {
+		r := recover()
+		if r == nil {
 			t.Errorf("router.addRoute did not panic for conflicting dynamic route")
 		}
+
+		assert.Equal(t, "Route '/test/a' can not be added. Dynamic route '/:name' conflicts with it. Check the route registration order.", r)
 	}()
 
 	router := newRouter()
