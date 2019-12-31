@@ -77,7 +77,7 @@ func TestResolveTreeNotFound(t *testing.T) {
 
 	node, req := router.resolve(req)
 	assert.Nil(t, node)
-	assert.Nil(t, req)
+	assert.NotNil(t, req)
 }
 
 func TestResolveNotFound(t *testing.T) {
@@ -88,12 +88,12 @@ func TestResolveNotFound(t *testing.T) {
 
 	node, req := router.resolve(req)
 	assert.Nil(t, node)
-	assert.Nil(t, req)
+	assert.NotNil(t, req)
 
 	req, _ = http.NewRequest("GET", "/*2<\\$/-\"5 ", nil)
 	node, req = router.resolve(req)
 	assert.Nil(t, node)
-	assert.Nil(t, req)
+	assert.NotNil(t, req)
 }
 
 func TestResolveMethodTreeNotFound(t *testing.T) {
@@ -103,7 +103,7 @@ func TestResolveMethodTreeNotFound(t *testing.T) {
 	req, _ := http.NewRequest("POST", "/testroute", nil)
 	node, req := router.resolve(req)
 	assert.Nil(t, node)
-	assert.Nil(t, req)
+	assert.NotNil(t, req)
 }
 
 func TestResolve(t *testing.T) {

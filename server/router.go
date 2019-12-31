@@ -55,7 +55,7 @@ func (r *router) addRoute(method string, path string, fn http.Handler) {
 func (r *router) resolve(req *http.Request) (*node, *http.Request) {
 	root := r.trees.getRoot(req.Method)
 	if root == nil {
-		return nil, nil
+		return nil, req
 	}
 
 	return root.resolve(req)

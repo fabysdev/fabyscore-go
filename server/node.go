@@ -114,7 +114,7 @@ func (n *node) resolve(req *http.Request) (*node, *http.Request) {
 		// load the next node with the current path part
 		n = n.load(path[startIndex:i])
 		if n == nil {
-			return nil, nil
+			return nil, req
 		}
 
 		// if the node is a match-all, add the remaining path as context value and return the node
@@ -145,7 +145,7 @@ func (n *node) resolve(req *http.Request) (*node, *http.Request) {
 	if startIndex != pathLen {
 		n = n.load(path[startIndex:])
 		if n == nil {
-			return nil, nil
+			return nil, req
 		}
 
 		if n.isDynamic || n.isMatchAll {
