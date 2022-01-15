@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"sort"
 	"strings"
+	"sync"
 )
 
 // node is a tree node for a specific path part.
@@ -86,25 +87,24 @@ func (n *node) add(path string, fn http.Handler) {
 
 // resolve returns the node and the request with context for a given request.
 // Returns nil, nil if no node was found for the request.
-func (n *node) resolve(req *http.Request) (*node, *http.Request) {
+func (n *node) resolve(req *http.Request, paramsPool *sync.Pool) (*node, *http.Request, *routeParams) {
 	if req.URL.Path == "/" {
 		if n.fn == nil && len(n.children) != 0 {
 			// check if a dynamic or match all route exists as root child
 			for _, child := range n.children {
 				if child.isDynamic || child.isMatchAll {
-					return child, req
+					return child, req, nil
 				}
 			}
 		}
 
-		return n, req
+		return n, req, nil
 	}
 
 	path := req.URL.Path
 	pathLen := len(path)
-
+	var params *routeParams
 	startIndex := 1
-	var ctx context.Context
 	for i := 1; i < pathLen; i++ {
 		// skip until next /
 		if path[i] != '/' {
@@ -114,28 +114,27 @@ func (n *node) resolve(req *http.Request) (*node, *http.Request) {
 		// load the next node with the current path part
 		n = n.load(path[startIndex:i])
 		if n == nil {
-			return nil, req
+			return nil, req, nil
 		}
 
-		// if the node is a match-all, add the remaining path as context value and return the node
+		// if the node is a match-all, add the remaining path as param and return the node
 		if n.isMatchAll {
-			if ctx == nil {
-				ctx = req.Context()
+			if params == nil {
+				params = paramsPool.Get().(*routeParams)
 			}
 
-			ctx = context.WithValue(ctx, dynamicContextKey(n.path[1:]), path[startIndex:])
-			req = req.WithContext(ctx)
-
-			return n, req
+			params.Add(n.path[1:], path[startIndex:])
+			req = req.WithContext(context.WithValue(req.Context(), routeParamsContextKey, params))
+			return n, req, params
 		}
 
-		// add the part as context value if the node is dynamic
+		// add the part as param if the node is dynamic
 		if n.isDynamic {
-			if ctx == nil {
-				ctx = req.Context()
+			if params == nil {
+				params = paramsPool.Get().(*routeParams)
 			}
 
-			ctx = context.WithValue(ctx, dynamicContextKey(n.path[1:]), path[startIndex:i])
+			params.Add(n.path[1:], path[startIndex:i])
 		}
 
 		startIndex = i + 1
@@ -145,27 +144,27 @@ func (n *node) resolve(req *http.Request) (*node, *http.Request) {
 	if startIndex != pathLen {
 		n = n.load(path[startIndex:])
 		if n == nil {
-			return nil, req
+			return nil, req, params
 		}
 
 		if n.isDynamic || n.isMatchAll {
-			if ctx == nil {
-				ctx = req.Context()
+			if params == nil {
+				params = paramsPool.Get().(*routeParams)
 			}
 
-			ctx = context.WithValue(ctx, dynamicContextKey(n.path[1:]), path[startIndex:])
+			params.Add(n.path[1:], path[startIndex:])
 		}
 	}
 
-	if ctx != nil {
-		req = req.WithContext(ctx)
+	if params != nil {
+		req = req.WithContext(context.WithValue(req.Context(), routeParamsContextKey, params))
 	}
 
 	if n.fn == nil && len(n.children) == 1 && (n.children[0].isDynamic || n.children[0].isMatchAll) {
-		return n.children[0], req
+		return n.children[0], req, params
 	}
 
-	return n, req
+	return n, req, params
 }
 
 // load returns the child node matching the given path, nil if no matching node was found.
