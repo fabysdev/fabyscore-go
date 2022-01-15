@@ -48,7 +48,7 @@ func (s *Server) RunTLS(addr, certFile, keyFile string, options ...Option) error
 
 // See http.Handler interface's ServeHTTP.
 func (s *Server) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	node, req := s.router.resolve(req)
+	node, req, params := s.router.resolve(req)
 	if node == nil || node.fn == nil {
 		if s.notFoundHandler != nil {
 			s.notFoundHandler(w, req)
@@ -60,6 +60,8 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	}
 
 	node.fn.ServeHTTP(w, req)
+
+	s.router.resetParams(params)
 }
 
 // GET adds a new request handler for a GET request with the given path.
@@ -223,6 +225,10 @@ func (s *Server) addRoute(method, path string, fn http.Handler, middlewares []Mi
 	middlewaresLen := len(middlewares)
 	if middlewaresLen > 0 {
 		for i := middlewaresLen - 1; i >= 0; i-- {
+			if middlewares[i] == nil {
+				continue
+			}
+
 			fn = middlewares[i](fn)
 		}
 	}
@@ -231,6 +237,10 @@ func (s *Server) addRoute(method, path string, fn http.Handler, middlewares []Mi
 	middlewaresLen = len(s.middlewares)
 	if middlewaresLen > 0 {
 		for i := middlewaresLen - 1; i >= 0; i-- {
+			if s.middlewares[i].fn == nil {
+				continue
+			}
+
 			fn = s.middlewares[i].fn(fn)
 		}
 	}
@@ -244,13 +254,12 @@ func createServeFilesHandler(root http.FileSystem) http.HandlerFunc {
 	fileServer := http.FileServer(FileSystem{root})
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ctx := r.Context()
-		file := ctx.Value("file")
-		if file == nil {
+		file := Param(r, "file")
+		if file == "" {
 			file = "/"
 		}
 
-		r.URL.Path = file.(string)
+		r.URL.Path = file
 
 		fileServer.ServeHTTP(w, r)
 	})

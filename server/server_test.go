@@ -89,7 +89,7 @@ func TestRoutes(t *testing.T) {
 	srv.GET("/testroute", routeHandler, srvRouteMiddleware)
 	assert.Equal(t, "GET:\n/\n  testroute\n\n\n", srv.router.dumpTree())
 	req, _ := http.NewRequest("GET", "/testroute", nil)
-	node, _ := srv.router.resolve(req)
+	node, _, _ := srv.router.resolve(req)
 	assert.NotNil(t, node)
 	assert.NotNil(t, node.fn)
 	assertFuncEquals(t, srvRouteMiddleware(http.HandlerFunc(routeHandler)), node.fn)
@@ -140,40 +140,46 @@ func TestGroup(t *testing.T) {
 		g.GET("/route", routeHandler)
 
 		g.POST("/route", routeHandler)
+		g.POST("/dynamic/:key", routeHandler)
 	})
 
 	tree := srv.router.dumpTree()
-	assert.Equal(t, "GET:\n/\n  test\n    route\n\n\nPOST:\n/\n  test\n    route\n\n\n", tree)
+	assert.Equal(t, "GET:\n/\n  test\n    route\n\n\nPOST:\n/\n  test\n    route\n    dynamic\n      :key\n\n\n", tree)
 	req, _ := http.NewRequest("GET", "/test/", nil)
-	node, _ := srv.router.resolve(req)
+	node, _, _ := srv.router.resolve(req)
 	assert.NotNil(t, node)
 	assert.NotNil(t, node.fn)
 	assertFuncEquals(t, srvGroupMiddleware(srvRouteMiddleware(http.HandlerFunc(routeHandler))), node.fn)
 
 	req, _ = http.NewRequest("GET", "/test/route", nil)
-	node, _ = srv.router.resolve(req)
+	node, _, _ = srv.router.resolve(req)
 	assert.NotNil(t, node)
 	assert.NotNil(t, node.fn)
 	assertFuncEquals(t, srvGroupMiddleware(http.HandlerFunc(routeHandler)), node.fn)
 
 	req, _ = http.NewRequest("POST", "/test/route", nil)
-	node, _ = srv.router.resolve(req)
+	node, _, _ = srv.router.resolve(req)
 	assert.NotNil(t, node)
 	assert.NotNil(t, node.fn)
 	assertFuncEquals(t, srvGroupMiddleware(http.HandlerFunc(routeHandler)), node.fn)
 
 	req, _ = http.NewRequest("POST", "/test/", nil)
-	node, _ = srv.router.resolve(req)
+	node, _, _ = srv.router.resolve(req)
 	assert.NotNil(t, node)
 	assert.Nil(t, node.fn)
 
 	req, _ = http.NewRequest("POST", "/test", nil)
-	node, _ = srv.router.resolve(req)
+	node, _, _ = srv.router.resolve(req)
 	assert.NotNil(t, node)
 	assert.Nil(t, node.fn)
 
 	req, _ = http.NewRequest("GET", "/test", nil)
-	node, _ = srv.router.resolve(req)
+	node, _, _ = srv.router.resolve(req)
+	assert.NotNil(t, node)
+	assert.NotNil(t, node.fn)
+
+	req, _ = http.NewRequest("POST", "/test/dynamic/value", nil)
+	node, _, _ = srv.router.resolve(req)
 	assert.NotNil(t, node)
 	assert.NotNil(t, node.fn)
 
@@ -183,6 +189,7 @@ func TestGroup(t *testing.T) {
 		g.GET("route", routeHandler)
 
 		g.POST("route", routeHandler)
+		g.POST("dynamic/:key", routeHandler)
 	})
 	assert.Equal(t, tree, srv.router.dumpTree())
 
@@ -192,6 +199,7 @@ func TestGroup(t *testing.T) {
 		g.GET("route", routeHandler)
 
 		g.POST("route", routeHandler)
+		g.POST("dynamic/:key", routeHandler)
 	})
 	assert.Equal(t, tree, srv.router.dumpTree())
 }
@@ -247,6 +255,39 @@ func TestGroupUsePanics(t *testing.T) {
 		g.GET("/route", routeHandler)
 		g.Use(srvMiddleware)
 	})
+}
+
+func TestNilMiddlware(t *testing.T) {
+	srv := New()
+	srv.Use(srvMiddleware)
+	srv.Use(nil)
+
+	srv.Group("/test", func(g *Group) {
+		g.Use(srvGroupMiddleware)
+		g.Use(nil)
+
+		g.GET("/", routeHandler)
+	})
+
+	srv.GET("/", routeHandler)
+
+	req, _ := http.NewRequest("GET", "/test", nil)
+	node, _, _ := srv.router.resolve(req)
+	assert.NotNil(t, node)
+	assert.NotNil(t, node.fn)
+
+	w := httptest.NewRecorder()
+	node.fn.ServeHTTP(w, req)
+	assert.Equal(t, "srv-startgroup-startrgroup-endsrv-end", w.Body.String())
+
+	req, _ = http.NewRequest("GET", "/", nil)
+	node, _, _ = srv.router.resolve(req)
+	assert.NotNil(t, node)
+	assert.NotNil(t, node.fn)
+
+	w = httptest.NewRecorder()
+	node.fn.ServeHTTP(w, req)
+	assert.Equal(t, "srv-startrsrv-end", w.Body.String())
 }
 
 func TestServeHTTPMiddlewareNoNext(t *testing.T) {
@@ -359,49 +400,49 @@ func TestServer(t *testing.T) {
 	req, _ := http.NewRequest("GET", "/", nil)
 	w := httptest.NewRecorder()
 	srv.ServeHTTP(w, req)
-	assert.Equal(t, "<nil><nil>contr", w.Body.String())
+	assert.Equal(t, "contr", w.Body.String())
 
 	// /he
 	req, _ = http.NewRequest("GET", "/he", nil)
 	w = httptest.NewRecorder()
 	srv.ServeHTTP(w, req)
-	assert.Equal(t, "a<nil><nil>contr", w.Body.String())
+	assert.Equal(t, "acontr", w.Body.String())
 
 	// /he/2
 	req, _ = http.NewRequest("GET", "/he/2", nil)
 	w = httptest.NewRecorder()
 	srv.ServeHTTP(w, req)
-	assert.Equal(t, "b<nil><nil>contr", w.Body.String())
+	assert.Equal(t, "bcontr", w.Body.String())
 
 	// /hello
 	req, _ = http.NewRequest("GET", "/hello", nil)
 	w = httptest.NewRecorder()
 	srv.ServeHTTP(w, req)
-	assert.Equal(t, "a<nil><nil>contr", w.Body.String())
+	assert.Equal(t, "acontr", w.Body.String())
 
 	// /dyn/
 	req, _ = http.NewRequest("GET", "/dyn/", nil)
 	w = httptest.NewRecorder()
 	srv.ServeHTTP(w, req)
-	assert.Equal(t, "a<nil><nil>contr", w.Body.String())
+	assert.Equal(t, "acontr", w.Body.String())
 
 	// /hello/test
 	req, _ = http.NewRequest("GET", "/hello/test", nil)
 	w = httptest.NewRecorder()
 	srv.ServeHTTP(w, req)
-	assert.Equal(t, "b<nil><nil>contr", w.Body.String())
+	assert.Equal(t, "bcontr", w.Body.String())
 
 	// /hello/test/it
 	req, _ = http.NewRequest("GET", "/hello/test/it", nil)
 	w = httptest.NewRecorder()
 	srv.ServeHTTP(w, req)
-	assert.Equal(t, "c<nil><nil>contr", w.Body.String())
+	assert.Equal(t, "ccontr", w.Body.String())
 
 	// /dyn/add/:id
 	req, _ = http.NewRequest("GET", "/dyn/add/123", nil)
 	w = httptest.NewRecorder()
 	srv.ServeHTTP(w, req)
-	assert.Equal(t, "a123<nil>contr", w.Body.String())
+	assert.Equal(t, "a123contr", w.Body.String())
 
 	// /dyn/change/:id/mod/:mod
 	req, _ = http.NewRequest("GET", "/dyn/change/123/mod/asdf", nil)
@@ -623,8 +664,8 @@ func srvTestNotFoundHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func fabyscoreHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprint(w, r.Context().Value("id"))
-	fmt.Fprint(w, r.Context().Value("mod"))
+	fmt.Fprint(w, Param(r, "id"))
+	fmt.Fprint(w, Param(r, "mod"))
 	fmt.Fprint(w, "contr")
 }
 

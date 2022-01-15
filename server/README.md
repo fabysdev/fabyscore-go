@@ -65,14 +65,11 @@ srv.GET("/route/:name", fabyscoreDynamicHandler)
 func fabyscoreDynamicHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	name := ctx.Value("name")
-	if name == nil {
-		name = ""
-  }
+	name := server.Param(r, "name")
 
   // GET /route/fabys => name = fabys
 
-	fmt.Fprint(w, "dynamic "+name.(string))
+	fmt.Fprint(w, "dynamic "+name)
 }
 ```
 
@@ -85,15 +82,12 @@ srv.GET("/route/*name", fabyscoreMatchAllHandler)
 func fabyscoreMatchAllHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	name := ctx.Value("name")
-	if name == nil {
-		name = ""
-  }
+	name := server.Param(r, "name")
 
    // GET /route/fabys => name = fabys
    // GET /route/fabys/test => name = fabys/test
 
-	fmt.Fprint(w, "match-all "+name.(string))
+	fmt.Fprint(w, "match-all "+name)
 }
 ```
 

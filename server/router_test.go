@@ -75,7 +75,7 @@ func TestResolveTreeNotFound(t *testing.T) {
 	router := newRouter()
 	req, _ := http.NewRequest("GET", "/", nil)
 
-	node, req := router.resolve(req)
+	node, req, _ := router.resolve(req)
 	assert.Nil(t, node)
 	assert.NotNil(t, req)
 }
@@ -86,12 +86,12 @@ func TestResolveNotFound(t *testing.T) {
 
 	req, _ := http.NewRequest("GET", "/notfound", nil)
 
-	node, req := router.resolve(req)
+	node, req, _ := router.resolve(req)
 	assert.Nil(t, node)
 	assert.NotNil(t, req)
 
 	req, _ = http.NewRequest("GET", "/*2<\\$/-\"5 ", nil)
-	node, req = router.resolve(req)
+	node, req, _ = router.resolve(req)
 	assert.Nil(t, node)
 	assert.NotNil(t, req)
 }
@@ -101,7 +101,7 @@ func TestResolveMethodTreeNotFound(t *testing.T) {
 	router.addRoute("GET", "/testroute", http.HandlerFunc(simpleHandler))
 
 	req, _ := http.NewRequest("POST", "/testroute", nil)
-	node, req := router.resolve(req)
+	node, req, _ := router.resolve(req)
 	assert.Nil(t, node)
 	assert.NotNil(t, req)
 }
@@ -118,31 +118,31 @@ func TestResolve(t *testing.T) {
 	router.addRoute("POST", "/route/:name/test/:param/name/", routeMiddleware(routeMiddleware(http.HandlerFunc(dynamicHandler))))
 
 	req, _ := http.NewRequest("GET", "/testroute", nil)
-	node, _ := router.resolve(req)
+	node, _, _ := router.resolve(req)
 	assert.NotNil(t, node)
 	assert.NotNil(t, node.fn)
 	assertFuncEquals(t, simpleHandler, node.fn)
 
 	req, _ = http.NewRequest("GET", "/", nil)
-	node, _ = router.resolve(req)
+	node, _, _ = router.resolve(req)
 	assert.NotNil(t, node)
 	assert.NotNil(t, node.fn)
 	assertFuncEquals(t, simpleHandler, node.fn)
 
 	req, _ = http.NewRequest("GET", "/route/test/name", nil)
-	node, _ = router.resolve(req)
+	node, _, _ = router.resolve(req)
 	assert.NotNil(t, node)
 	assert.NotNil(t, node.fn)
 	assertFuncEquals(t, routeMiddleware(http.HandlerFunc(simpleHandler)), node.fn)
 
 	req, _ = http.NewRequest("POST", "/route", nil)
-	node, _ = router.resolve(req)
+	node, _, _ = router.resolve(req)
 	assert.NotNil(t, node)
 	assert.NotNil(t, node.fn)
 	assertFuncEquals(t, simpleHandler, node.fn)
 
 	req, _ = http.NewRequest("POST", "/route/core/test/attr/name/", nil)
-	node, req = router.resolve(req)
+	node, req, _ = router.resolve(req)
 	assert.NotNil(t, node)
 	assert.NotNil(t, node.fn)
 	assertFuncEquals(t, routeMiddleware(http.HandlerFunc(dynamicHandler)), node.fn)
@@ -152,7 +152,7 @@ func TestResolve(t *testing.T) {
 	assert.Equal(t, "route-startroute-startdynamic core attrroute-endroute-end", w.Body.String())
 
 	req, _ = http.NewRequest("POST", "/route/core", nil)
-	node, req = router.resolve(req)
+	node, req, _ = router.resolve(req)
 	assert.NotNil(t, node)
 	assert.NotNil(t, node.fn)
 	assertFuncEquals(t, dynamicHandler, node.fn)
@@ -167,7 +167,7 @@ func TestResolveDynamicPathIndex(t *testing.T) {
 	router.addRoute("GET", "/static/:path", http.HandlerFunc(matchallHandler))
 
 	req, _ := http.NewRequest("GET", "/static/", nil)
-	node, req := router.resolve(req)
+	node, req, _ := router.resolve(req)
 	assert.NotNil(t, node)
 	assert.NotNil(t, node.fn)
 	assertFuncEquals(t, matchallHandler, node.fn)
@@ -182,7 +182,7 @@ func TestResolveMatchAll(t *testing.T) {
 	router.addRoute("GET", "/route/*path", http.HandlerFunc(matchallHandler))
 
 	req, _ := http.NewRequest("GET", "/route/core", nil)
-	node, req := router.resolve(req)
+	node, req, _ := router.resolve(req)
 	assert.NotNil(t, node)
 	assert.NotNil(t, node.fn)
 	assertFuncEquals(t, matchallHandler, node.fn)
@@ -192,7 +192,7 @@ func TestResolveMatchAll(t *testing.T) {
 	assert.Equal(t, "match-all core", w.Body.String())
 
 	req, _ = http.NewRequest("GET", "/route/core/", nil)
-	node, req = router.resolve(req)
+	node, req, _ = router.resolve(req)
 	assert.NotNil(t, node)
 	assert.NotNil(t, node.fn)
 	assertFuncEquals(t, matchallHandler, node.fn)
@@ -202,7 +202,7 @@ func TestResolveMatchAll(t *testing.T) {
 	assert.Equal(t, "match-all core/", w.Body.String())
 
 	req, _ = http.NewRequest("GET", "/route/core/test/attr", nil)
-	node, req = router.resolve(req)
+	node, req, _ = router.resolve(req)
 	assert.NotNil(t, node)
 	assert.NotNil(t, node.fn)
 	assertFuncEquals(t, matchallHandler, node.fn)
@@ -212,7 +212,7 @@ func TestResolveMatchAll(t *testing.T) {
 	assert.Equal(t, "match-all core/test/attr", w.Body.String())
 
 	req, _ = http.NewRequest("GET", "/route/core/test/attr/name/", nil)
-	node, req = router.resolve(req)
+	node, req, _ = router.resolve(req)
 	assert.NotNil(t, node)
 	assert.NotNil(t, node.fn)
 	assertFuncEquals(t, matchallHandler, node.fn)
@@ -222,7 +222,7 @@ func TestResolveMatchAll(t *testing.T) {
 	assert.Equal(t, "match-all core/test/attr/name/", w.Body.String())
 
 	req, _ = http.NewRequest("GET", "/route/core/test/attr/name/file.txt", nil)
-	node, req = router.resolve(req)
+	node, req, _ = router.resolve(req)
 	assert.NotNil(t, node)
 	assert.NotNil(t, node.fn)
 	assertFuncEquals(t, matchallHandler, node.fn)
@@ -237,7 +237,7 @@ func TestResolveMatchAllNoEndingSlash(t *testing.T) {
 	router.addRoute("GET", "/route/*path", http.HandlerFunc(matchallHandler))
 
 	req, _ := http.NewRequest("GET", "/route/core", nil)
-	node, req := router.resolve(req)
+	node, req, _ := router.resolve(req)
 	assert.NotNil(t, node)
 	assert.NotNil(t, node.fn)
 	assertFuncEquals(t, matchallHandler, node.fn)
@@ -247,7 +247,7 @@ func TestResolveMatchAllNoEndingSlash(t *testing.T) {
 	assert.Equal(t, "match-all core", w.Body.String())
 
 	req, _ = http.NewRequest("GET", "/route/core/", nil)
-	node, req = router.resolve(req)
+	node, req, _ = router.resolve(req)
 	assert.NotNil(t, node)
 	assert.NotNil(t, node.fn)
 	assertFuncEquals(t, matchallHandler, node.fn)
@@ -257,7 +257,7 @@ func TestResolveMatchAllNoEndingSlash(t *testing.T) {
 	assert.Equal(t, "match-all core/", w.Body.String())
 
 	req, _ = http.NewRequest("GET", "/route/core/test/attr", nil)
-	node, req = router.resolve(req)
+	node, req, _ = router.resolve(req)
 	assert.NotNil(t, node)
 	assert.NotNil(t, node.fn)
 	assertFuncEquals(t, matchallHandler, node.fn)
@@ -267,7 +267,7 @@ func TestResolveMatchAllNoEndingSlash(t *testing.T) {
 	assert.Equal(t, "match-all core/test/attr", w.Body.String())
 
 	req, _ = http.NewRequest("GET", "/route/core/test/attr/name/", nil)
-	node, req = router.resolve(req)
+	node, req, _ = router.resolve(req)
 	assert.NotNil(t, node)
 	assert.NotNil(t, node.fn)
 	assertFuncEquals(t, matchallHandler, node.fn)
@@ -277,7 +277,7 @@ func TestResolveMatchAllNoEndingSlash(t *testing.T) {
 	assert.Equal(t, "match-all core/test/attr/name/", w.Body.String())
 
 	req, _ = http.NewRequest("GET", "/route/core/test/attr/name/file.txt", nil)
-	node, req = router.resolve(req)
+	node, req, _ = router.resolve(req)
 	assert.NotNil(t, node)
 	assert.NotNil(t, node.fn)
 	assertFuncEquals(t, matchallHandler, node.fn)
@@ -292,7 +292,7 @@ func TestResolveMatchAllIndex(t *testing.T) {
 	router.addRoute("GET", "/*path", http.HandlerFunc(matchallHandler))
 
 	req, _ := http.NewRequest("GET", "/", nil)
-	node, req := router.resolve(req)
+	node, req, _ := router.resolve(req)
 	assert.NotNil(t, node)
 	assert.NotNil(t, node.fn)
 	assertFuncEquals(t, matchallHandler, node.fn)
@@ -307,7 +307,7 @@ func TestResolveMatchAllPathIndex(t *testing.T) {
 	router.addRoute("GET", "/static/*path", http.HandlerFunc(matchallHandler))
 
 	req, _ := http.NewRequest("GET", "/static/", nil)
-	node, req := router.resolve(req)
+	node, req, _ := router.resolve(req)
 	assert.NotNil(t, node)
 	assert.NotNil(t, node.fn)
 	assertFuncEquals(t, matchallHandler, node.fn)
@@ -324,7 +324,7 @@ func TestResolveMatchAllIndexWithMultipleRoutes(t *testing.T) {
 
 	// match all req
 	req, _ := http.NewRequest("GET", "/", nil)
-	node, req := router.resolve(req)
+	node, req, _ := router.resolve(req)
 	assert.NotNil(t, node)
 	assert.NotNil(t, node.fn)
 	assertFuncEquals(t, matchallHandler, node.fn)
@@ -334,7 +334,7 @@ func TestResolveMatchAllIndexWithMultipleRoutes(t *testing.T) {
 	assert.Equal(t, "match-all ", w.Body.String())
 
 	req, _ = http.NewRequest("GET", "/a", nil)
-	node, req = router.resolve(req)
+	node, req, _ = router.resolve(req)
 	assert.NotNil(t, node)
 	assert.NotNil(t, node.fn)
 	assertFuncEquals(t, matchallHandler, node.fn)
@@ -344,7 +344,7 @@ func TestResolveMatchAllIndexWithMultipleRoutes(t *testing.T) {
 	assert.Equal(t, "match-all a", w.Body.String())
 
 	req, _ = http.NewRequest("GET", "/a/b", nil)
-	node, req = router.resolve(req)
+	node, req, _ = router.resolve(req)
 	assert.NotNil(t, node)
 	assert.NotNil(t, node.fn)
 	assertFuncEquals(t, matchallHandler, node.fn)
@@ -355,7 +355,7 @@ func TestResolveMatchAllIndexWithMultipleRoutes(t *testing.T) {
 
 	// simple req
 	req, _ = http.NewRequest("GET", "/test", nil)
-	node, req = router.resolve(req)
+	node, req, _ = router.resolve(req)
 	assert.NotNil(t, node)
 	assert.NotNil(t, node.fn)
 	assertFuncEquals(t, simpleHandler, node.fn)
@@ -373,7 +373,7 @@ func TestResolveDynamicWithMultipleRoutes(t *testing.T) {
 
 	// dynamic
 	req, _ := http.NewRequest("GET", "/name_a/a", nil)
-	node, req := router.resolve(req)
+	node, req, _ := router.resolve(req)
 	assert.NotNil(t, node)
 	assert.NotNil(t, node.fn)
 	assertFuncEquals(t, dynamicHandler, node.fn)
@@ -383,7 +383,7 @@ func TestResolveDynamicWithMultipleRoutes(t *testing.T) {
 	assert.Equal(t, "dynamic name_a ", w.Body.String())
 
 	req, _ = http.NewRequest("GET", "/name_b/b", nil)
-	node, req = router.resolve(req)
+	node, req, _ = router.resolve(req)
 	assert.NotNil(t, node)
 	assert.NotNil(t, node.fn)
 	assertFuncEquals(t, dynamicHandler, node.fn)
@@ -394,7 +394,7 @@ func TestResolveDynamicWithMultipleRoutes(t *testing.T) {
 
 	// simple req
 	req, _ = http.NewRequest("GET", "/test", nil)
-	node, req = router.resolve(req)
+	node, req, _ = router.resolve(req)
 	assert.NotNil(t, node)
 	assert.NotNil(t, node.fn)
 	assertFuncEquals(t, simpleHandler, node.fn)
@@ -515,31 +515,14 @@ func simpleHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func dynamicHandler(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-
-	name := ctx.Value("name")
-	nameStr := ""
-	if name != nil {
-		nameStr = name.(string)
-	}
-
-	param := ctx.Value("param")
-	paramStr := ""
-	if param != nil {
-		paramStr = param.(string)
-	}
+	nameStr := Param(r, "name")
+	paramStr := Param(r, "param")
 
 	fmt.Fprint(w, "dynamic "+nameStr+" "+paramStr)
 }
 
 func matchallHandler(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-
-	path := ctx.Value("path")
-	pathStr := ""
-	if path != nil {
-		pathStr = path.(string)
-	}
+	pathStr := Param(r, "path")
 
 	fmt.Fprint(w, "match-all "+pathStr)
 }

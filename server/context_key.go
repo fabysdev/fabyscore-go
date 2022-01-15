@@ -10,6 +10,3 @@ type ContextKey struct {
 func (ck *ContextKey) String() string {
 	return "fabyscore-go_" + ck.Name
 }
-
-// dynamicContextKey is the type of the key for dynamic context entries (Unknown string value as key. e.g. /hello/:name -> context entry with key 'name').
-type dynamicContextKey interface{}
